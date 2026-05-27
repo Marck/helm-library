@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {"type": "object"},
+    "replicaCount": {"type": "integer"},
+    "image": {"type": "object"},
+    "service": {"type": "object"},
+    "ingress": {"type": "object"},
+    "configmap": {"type": "object"},
+    "sealedSecret": {"type": "object"},
+    "persistence": {"type": "object"},
+    "nodeSelector": {"type": "object"},
+    "affinity": {"type": "object"},
+    "tolerations": {"type": "array"},
+    "podSecurityContext": {"type": "object"},
+    "securityContext": {"type": "object"}
+  }
+}
