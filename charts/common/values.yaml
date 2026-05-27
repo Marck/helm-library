@@ -1,0 +1,121 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+configmap:
+  enabled: false
+  data: {}
+
+sealedSecret:
+  enabled: false
+  name: ""
+  namespace: ""
+  templateData: {}
+
+# Single persistence volume (backwards compatible)
+persistence:
+  enabled: true
+  nfs:
+    server: 10.0.0.1
+    path: /exports/data
+  size: 10Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  reclaimPolicy: Retain
+
+# Multiple persistence volumes
+# Use persistenceVolumes to define multiple PV/PVC pairs
+# Example:
+# persistenceVolumes:
+#   data:
+#     enabled: true
+#     nfs:
+#       server: 10.0.0.1
+#       path: /exports/data
+#     size: 10Gi
+#     accessModes:
+#       - ReadWriteMany
+#     storageClassName: ""
+#     reclaimPolicy: Retain
+#   config:
+#     enabled: true
+#     nfs:
+#       server: 10.0.0.1
+#       path: /exports/config
+#     size: 5Gi
+#     accessModes:
+#       - ReadWriteMany
+#     storageClassName: ""
+#     reclaimPolicy: Retain
+#   media:
+#     enabled: true
+#     name: custom-media-pv  # Optional: override the generated name
+#     pvcName: custom-media-pvc  # Optional: override the generated PVC name
+#     nfs:
+#       server: 10.0.0.1
+#       path: /exports/media
+#     size: 100Gi
+#     accessModes:
+#       - ReadWriteMany
+#     storageClassName: ""
+#     reclaimPolicy: Retain
+
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+initContainers: []
+
+# Pod-level security context.
+# Minimal safe defaults — override per chart with the correct runAsUser for NFS UID mapping.
+# For PUID/PGID images (linuxserver) omit runAsUser/runAsNonRoot; the image handles UID
+# switching internally via s6-overlay. fsGroup controls NFS volume ownership.
+#
+# podSecurityContext:
+#   runAsNonRoot: true       # omit for PUID/PGID (linuxserver) images
+#   runAsUser: 1000          # omit for PUID/PGID images; set PUID env var instead
+#   runAsGroup: 100
+#   fsGroup: 1000            # NFS UID — unique per chart for squash/map rules
+#   fsGroupChangePolicy: "OnRootMismatch"
+#   supplementalGroups: [100]
+#   seccompProfile:
+#     type: RuntimeDefault   # always include — restricts syscalls to a safe allowlist
+
+# Container-level security context.
+# Capabilities.drop ALL + add only what the app strictly needs.
+# readOnlyRootFilesystem: true where the image supports it; pair with emptyDir mounts
+# for any writable paths the app requires (/tmp, /run, /var/cache …).
+#
+# securityContext:
+#   allowPrivilegeEscalation: false
+#   readOnlyRootFilesystem: true
+#   runAsNonRoot: true       # omit for PUID/PGID images
+#   runAsUser: 1000          # omit for PUID/PGID images
+#   runAsGroup: 100
+#   capabilities:
+#     drop:
+#       - ALL
+#     add: []                # e.g. NET_BIND_SERVICE for ports < 1024
