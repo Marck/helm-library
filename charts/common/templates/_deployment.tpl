@@ -178,6 +178,9 @@ spec:
               mountPath: /data
           {{- end }}
           {{- end }}
+      {{- if $config.additionalContainers }}
+{{ toYaml $config.additionalContainers | indent 8 }}
+      {{- end }}
       {{- if or $config.volumes (or $config.persistence $root.Values.persistence) }}
       volumes:
       {{- if $config.volumes }}
