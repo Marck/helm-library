@@ -36,6 +36,10 @@ spec:
 {{- include "common.labels" $root | nindent 8 }}
         app.kubernetes.io/component: {{ $comp }}
     spec:
+      {{- if or $config.imagePullSecrets $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml (default $root.Values.imagePullSecrets $config.imagePullSecrets) | indent 6 }}
+      {{- end }}
       {{- if or $config.podSecurityContext $root.Values.podSecurityContext }}
       securityContext:
 {{ toYaml (default $root.Values.podSecurityContext $config.podSecurityContext) | indent 8 }}
@@ -178,6 +182,9 @@ spec:
               mountPath: /data
           {{- end }}
           {{- end }}
+      {{- if $config.additionalContainers }}
+{{ toYaml $config.additionalContainers | indent 8 }}
+      {{- end }}
       {{- if or $config.volumes (or $config.persistence $root.Values.persistence) }}
       volumes:
       {{- if $config.volumes }}
