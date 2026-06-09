@@ -2,7 +2,7 @@
 {{- $root := .Root -}}
 {{- if $root.Values.networkPolicies -}}
 {{- range $name, $policy := $root.Values.networkPolicies -}}
-{{- if $policy.enabled }}
+{{- if and $policy.enabled (or (kindIs "invalid" $root.Values.networkPoliciesEnabled) $root.Values.networkPoliciesEnabled) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
