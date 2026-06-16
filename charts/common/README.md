@@ -81,8 +81,12 @@ Key values fields under `Config`:
 | `volumeMounts` | List of volume mounts (raw YAML, supports `tpl`) |
 | `volumes` | List of volumes (raw YAML, supports `tpl`) |
 | `initContainers` | List of init containers (raw YAML) |
+| `additionalContainers` | List of extra sidecar containers appended to the pod (raw YAML) |
+| `imagePullSecrets` | List of image pull secrets (e.g. for private registries) |
 | `securityContext` | Container-level security context |
 | `podSecurityContext` | Pod-level security context |
+| `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
+| `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
 | `nodeSelector` | Pod node selector |
 | `affinity` | Pod affinity rules |
 | `tolerations` | Pod tolerations |
@@ -104,6 +108,18 @@ strategy: RollingUpdate
 rollingUpdate:
   maxUnavailable: 0
   maxSurge: 1
+```
+
+**hostNetwork + sidecar example** (e.g. an app needing mDNS on the LAN plus a helper container reached over `127.0.0.1`):
+```yaml
+hostNetwork: true                 # dnsPolicy defaults to ClusterFirstWithHostNet
+additionalContainers:
+  - name: helper
+    image: example/helper:latest
+    ports:
+      - containerPort: 6969
+imagePullSecrets:
+  - name: my-registry-cred
 ```
 
 **env with secretKeyRef:**
