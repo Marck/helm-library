@@ -24,3 +24,10 @@ jobs:
 
       - name: Helm lint --strict
         run: helm lint --strict charts/common
+
+      - name: Template test chart against local common
+        run: |
+          helm dependency update tests/common-test-chart
+          helm lint --strict tests/common-test-chart
+          helm template test tests/common-test-chart -f tests/common-test-chart/values.yaml
+          helm template test tests/common-test-chart -f tests/common-test-chart/values-multi-pv.yaml
