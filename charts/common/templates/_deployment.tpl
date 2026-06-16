@@ -36,6 +36,12 @@ spec:
 {{- include "common.labels" $root | nindent 8 }}
         app.kubernetes.io/component: {{ $comp }}
     spec:
+      {{- if $config.hostNetwork }}
+      hostNetwork: {{ $config.hostNetwork }}
+      {{- end }}
+      {{- if or $config.dnsPolicy $config.hostNetwork }}
+      dnsPolicy: {{ $config.dnsPolicy | default "ClusterFirstWithHostNet" }}
+      {{- end }}
       {{- if or $config.imagePullSecrets $root.Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml (default $root.Values.imagePullSecrets $config.imagePullSecrets) | indent 6 }}

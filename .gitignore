@@ -1,4 +1,6 @@
 *.tgz
 charts/*/charts/
+tests/**/charts/
+tests/**/Chart.lock
 .cr-release-packages/
 .cr-index/
