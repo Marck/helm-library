@@ -1,0 +1,49 @@
+# Test values file with multiple persistence volumes
+nameOverride: "test-app"
+
+# Required fields
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+
+persistenceVolumes:
+  data:
+    enabled: true
+    nfs:
+      server: loki.mastcloud.nl
+      path: /exports/data
+    size: 10Gi
+    accessModes:
+      - ReadWriteMany
+    storageClassName: ""
+    reclaimPolicy: Retain
+  config:
+    enabled: true
+    nfs:
+      server: loki.mastcloud.nl
+      path: /exports/config
+    size: 5Gi
+    accessModes:
+      - ReadWriteMany
+    storageClassName: ""
+    reclaimPolicy: Retain
+  media:
+    enabled: true
+    name: custom-media-pv
+    pvcName: custom-media-pvc
+    nfs:
+      server: loki.mastcloud.nl
+      path: /exports/media
+    size: 100Gi
+    accessModes:
+      - ReadWriteMany
+    storageClassName: ""
+    reclaimPolicy: Retain
