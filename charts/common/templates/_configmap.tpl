@@ -1,6 +1,23 @@
 {{- define "common.configmap" -}}
 {{- $root := .Root }}
-{{- if kindIs "slice" $root.Values.configmap }}
+{{- if .Data }}
+{{- /*
+  One-off ConfigMap from an explicit name + data map passed by the caller, e.g.
+    {{ include "common.configmap" (dict "Root" . "Name" "x" "Data" (dict "f.json" (toJson .Values.x))) }}
+  Lets a chart keep its values structured in values.yaml and serialise them in the
+  template, instead of hand-writing a ConfigMap. (Callers passing only "Root" keep
+  using the Values.configmap form below, unchanged.)
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Name | default (printf "%s-cm" (include "common.fullname" $root)) }}
+  namespace: {{ $root.Values.namespace | default $root.Release.Namespace }}
+  labels:
+{{- include "common.labels" $root | nindent 4 }}
+data:
+{{- toYaml .Data | nindent 2 }}
+{{- else if kindIs "slice" $root.Values.configmap }}
 {{- /* Support for multiple configmaps */ -}}
 {{- range $index, $cm := $root.Values.configmap }}
 {{- if $cm.enabled }}
