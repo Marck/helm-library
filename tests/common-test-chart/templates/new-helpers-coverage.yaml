@@ -1,0 +1,20 @@
+{{- /*
+  Coverage for the common 0.4.4 helper additions (exercised by `helm template` in CI):
+    - common.configmap with an explicit Name + Data  -> one-off generated ConfigMap
+    - common.ingress as a SECOND ingress via Ingress/NameSuffix/ServiceName/ServicePort
+  Both helpers take all they need as explicit params, so we pass the real context as
+  Root directly (no values needed -> no loader-style merge).
+*/ -}}
+{{ include "common.configmap" (dict "Root" . "Name" "extra-cm" "Data" (dict
+     "extra.json" (toPrettyJson (dict "hello" "world")))) }}
+---
+{{ include "common.ingress" (dict "Root" .
+     "Ingress" (dict
+       "enabled" true
+       "className" "nginx"
+       "hosts" (list (dict "host" "extra.example.com" "paths" (list (dict "path" "/" "pathType" "Prefix"))))
+       "tls" true
+       "tlsSecretName" "extra-tls")
+     "NameSuffix" "extra-ingress"
+     "ServiceName" "extra-svc"
+     "ServicePort" 8080) }}
