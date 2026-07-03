@@ -75,6 +75,7 @@ Key values fields under `Config`:
 | `args` | Container args (overrides Docker CMD) |
 | `resources` | Resource requests and limits (`limits`, `requests`) |
 | `env` | Map of env vars — plain values, `""` for empty, or full `valueFrom` maps |
+| `envFrom` | List of `secretRef`/`configMapRef` sources (tpl-evaluated) |
 | `ports` | List of `{containerPort, protocol?, name?}` for multi-port containers |
 | `service.port` | Used as single container port when `ports` is not set |
 | `probes.liveness/readiness/startup` | See [PROBES.md](PROBES.md) |
@@ -499,6 +500,39 @@ Supports a single configmap or a list. See [CONFIGMAP.md](CONFIGMAP.md) for deta
 Parameters: `Root`, `Component`, `Config`
 
 Generates pod annotations with checksums for configMaps and sealedSecrets, so pods restart on config changes. Automatically included by `common.deployment`.
+
+### `common.serviceaccount`
+
+Parameters: `Root`, `Config` (optional)
+
+Renders a ServiceAccount when `serviceAccount.create` is true. `common.deployment` automatically sets `serviceAccountName` when `serviceAccount.create` or `serviceAccount.name` is set.
+
+```yaml
+serviceAccount:
+  create: true
+  name: ""          # defaults to the chart fullname
+  annotations: {}
+  automount: true
+```
+
+### `common.rbac`
+
+Parameters: `Root`, `Config` (optional)
+
+Renders a Role + RoleBinding (or ClusterRole + ClusterRoleBinding with `clusterWide: true`) bound to the chart's ServiceAccount.
+
+```yaml
+rbac:
+  create: true
+  clusterWide: true
+  rules:
+    - apiGroups: [""]
+      resources: [nodes, pods, namespaces]
+      verbs: [get, list]
+    - apiGroups: [metrics.k8s.io]
+      resources: [nodes, pods]
+      verbs: [get, list]
+```
 
 ---
 

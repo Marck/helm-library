@@ -23,6 +23,24 @@ common:
   sealedSecret:
     enabled: false
 
+  # Exercises the serviceaccount + rbac additions in common 0.5.0
+  serviceAccount:
+    create: true
+    automount: true
+    annotations:
+      example.com/purpose: test
+
+  rbac:
+    create: true
+    clusterWide: true
+    rules:
+      - apiGroups: [""]
+        resources: [nodes, pods, namespaces]
+        verbs: [get, list]
+      - apiGroups: [metrics.k8s.io]
+        resources: [nodes, pods]
+        verbs: [get, list]
+
   ingress:
     enabled: false
 
@@ -48,6 +66,13 @@ common:
 
   nodeSelector:
     disktype: nfs
+
+  # Exercises the envFrom addition in common 0.5.0
+  envFrom:
+    - secretRef:
+        name: test-secret
+    - configMapRef:
+        name: test-cm
 
   # Exercises the hostNetwork + sidecar additions in common 0.4.3
   hostNetwork: true

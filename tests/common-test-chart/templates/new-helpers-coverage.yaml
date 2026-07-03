@@ -18,3 +18,14 @@
      "NameSuffix" "extra-ingress"
      "ServiceName" "extra-svc"
      "ServicePort" 8080) }}
+---
+{{- /* common 0.5.0: namespaced Role/RoleBinding via explicit Config (cluster-wide
+       ClusterRole path is covered by values.yaml through the loader) */}}
+{{ include "common.rbac" (dict "Root" .
+     "Config" (dict "rbac" (dict
+       "create" true
+       "name" "extra-role"
+       "rules" (list (dict
+         "apiGroups" (list "")
+         "resources" (list "configmaps")
+         "verbs" (list "get" "list")))))) }}
