@@ -19,4 +19,8 @@
 {{ include "common.sealedsecret" $ctx }}
 ---
 {{ include "common.service" $ctx }}
+---
+{{ include "common.serviceaccount" $ctx }}
+---
+{{ include "common.rbac" $ctx }}
 {{- end -}}

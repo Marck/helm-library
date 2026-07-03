@@ -36,6 +36,10 @@ spec:
 {{- include "common.labels" $root | nindent 8 }}
         app.kubernetes.io/component: {{ $comp }}
     spec:
+      {{- $sa := (default $root.Values.serviceAccount $config.serviceAccount) | default dict }}
+      {{- if or $sa.create $sa.name }}
+      serviceAccountName: {{ include "common.serviceAccountName" $root }}
+      {{- end }}
       {{- if $config.hostNetwork }}
       hostNetwork: {{ $config.hostNetwork }}
       {{- end }}
@@ -86,6 +90,10 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           {{- end }}
+          {{- end }}
+          {{- if $config.envFrom }}
+          envFrom:
+{{ tpl (toYaml $config.envFrom) $root | indent 12 }}
           {{- end }}
           {{- /* ports is optional — polling/batch workloads may expose no ports */ -}}
           {{- if or $config.ports $config.service }}

@@ -81,6 +81,25 @@ persistence:
 #     storageClassName: ""
 #     reclaimPolicy: Retain
 
+# ServiceAccount for the workload. When create is true the deployment references it.
+serviceAccount:
+  create: false
+  name: ""          # defaults to the chart fullname
+  annotations: {}
+  automount: true
+
+# (Cluster)Role + (Cluster)RoleBinding bound to the chart's ServiceAccount.
+# clusterWide: true renders ClusterRole/ClusterRoleBinding instead of Role/RoleBinding.
+rbac:
+  create: false
+  clusterWide: false
+  name: ""          # defaults to the chart fullname
+  rules: []
+  # rules:
+  #   - apiGroups: [""]
+  #     resources: [nodes, pods, namespaces]
+  #     verbs: [get, list]
+
 nodeSelector: {}
 
 affinity: {}
