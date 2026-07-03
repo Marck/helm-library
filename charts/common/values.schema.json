@@ -9,6 +9,8 @@
     "ingress": {"type": "object"},
     "configmap": {"type": "object"},
     "sealedSecret": {"type": "object"},
+    "serviceAccount": {"type": "object"},
+    "rbac": {"type": "object"},
     "persistence": {"type": "object"},
     "nodeSelector": {"type": "object"},
     "affinity": {"type": "object"},
