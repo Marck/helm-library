@@ -91,6 +91,7 @@ Key values fields under `Config`:
 | `nodeSelector` | Pod node selector |
 | `affinity` | Pod affinity rules |
 | `tolerations` | Pod tolerations |
+| `podLabels` | Extra labels merged into the pod template (e.g. to group pods across components under one Service selector) |
 
 **Multi-port container example:**
 ```yaml
@@ -159,6 +160,11 @@ Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.V
 | `service.targetPort` | Override target port for single-port services |
 | `service.portName` | Port name for single-port services |
 | `service.ports` | List of port objects for multi-port services |
+| `service.annotations` | Extra annotations on the Service (e.g. `kube-vip.io/loadbalancerIPs`) |
+| `service.selector` | Override the pod selector (default: `name` + `component`) — e.g. to target pods across multiple components via a shared `podLabels` key |
+| `service.loadBalancerIP` | Request a specific LoadBalancer IP |
+| `service.externalTrafficPolicy` | `Cluster` (default) or `Local` (preserves client source IP) |
+| `service.loadBalancerClass` | LoadBalancer implementation class (e.g. to pick kube-vip over k3s klipper) |
 
 **Multi-port service example:**
 ```yaml
