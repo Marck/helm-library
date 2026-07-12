@@ -35,6 +35,9 @@ spec:
       labels:
 {{- include "common.labels" $root | nindent 8 }}
         app.kubernetes.io/component: {{ $comp }}
+        {{- with $config.podLabels }}
+{{ toYaml . | indent 8 }}
+        {{- end }}
     spec:
       {{- $sa := (default $root.Values.serviceAccount $config.serviceAccount) | default dict }}
       {{- if or $sa.create $sa.name }}

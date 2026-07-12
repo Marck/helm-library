@@ -4,9 +4,22 @@ common:
     tag: stable
     pullPolicy: IfNotPresent
 
+  # Exercises the common 0.5.1 service additions: annotations, custom selector,
+  # loadBalancerIP, externalTrafficPolicy
   service:
-    type: ClusterIP
+    type: LoadBalancer
     port: 80
+    annotations:
+      example.com/svc: test
+    selector:
+      app.kubernetes.io/part-of: custom-group
+    loadBalancerIP: 203.0.113.10
+    externalTrafficPolicy: Local
+    loadBalancerClass: example.io/custom-lb
+
+  # Exercises the common 0.5.1 podLabels addition
+  podLabels:
+    example.com/pod: test
 
   persistence:
     enabled: true
