@@ -29,3 +29,19 @@
          "apiGroups" (list "")
          "resources" (list "configmaps")
          "verbs" (list "get" "list")))))) }}
+---
+{{- /* common 0.5.2: common.namespace nodeSelector -> scheduler node-selector
+       annotation, and the nodeSelectorEnabled=false override that suppresses it
+       (for namespaces whose pods must run cluster-wide). Synthetic .Values so we
+       don't disturb the loader-driven values above. */}}
+{{ include "common.namespace" (dict
+     "Values" (dict "namespace" "ns-pinned"
+       "nodeSelector" (dict "node-role.kubernetes.io/worker" "worker"))
+     "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Template" .Template) }}
+---
+{{ include "common.namespace" (dict
+     "Values" (dict "namespace" "ns-clusterwide"
+       "nodeSelector" (dict "node-role.kubernetes.io/worker" "worker")
+       "nodeSelectorEnabled" false
+       "podSecurity" (dict "enabled" true "enforce" "privileged" "audit" "privileged" "warn" "privileged"))
+     "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Template" .Template) }}
