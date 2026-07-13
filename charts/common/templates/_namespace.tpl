@@ -3,7 +3,16 @@
 {{- if .Values.namespaceAnnotations -}}
   {{- $annotations = mergeOverwrite $annotations .Values.namespaceAnnotations -}}
 {{- end -}}
-{{- if .Values.nodeSelector -}}
+{{- /* Node-selector namespace annotation (PodNodeSelector admission). Emitted
+   from .Values.nodeSelector, but a consumer can suppress it with the scalar
+   nodeSelectorEnabled: false — a map default can't be cleared via Helm merge,
+   so an explicit boolean is the only clean per-app override (e.g. a chart whose
+   pods must run cluster-wide). Defaults to true → existing behaviour unchanged. */ -}}
+{{- $nodeSelectorEnabled := true -}}
+{{- if hasKey .Values "nodeSelectorEnabled" -}}
+  {{- $nodeSelectorEnabled = .Values.nodeSelectorEnabled -}}
+{{- end -}}
+{{- if and .Values.nodeSelector $nodeSelectorEnabled -}}
   {{- $parts := list -}}
   {{- range $k, $v := .Values.nodeSelector -}}
     {{- $parts = append $parts (printf "%s=%s" $k $v) -}}
