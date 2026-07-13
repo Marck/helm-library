@@ -53,6 +53,19 @@ Creates a `Namespace` resource named `values.namespace` (falls back to `Release.
 
 ```yaml
 namespace: myapp
+namespaceLabels: {}          # extra labels
+namespaceAnnotations: {}     # extra annotations
+podSecurity:                 # Pod Security Admission labels
+  enabled: true
+  enforce: baseline          # privileged | baseline | restricted
+  audit: restricted
+  warn: restricted
+nodeSelector:                # written as a scheduler.alpha…/node-selector annotation
+  node-role.kubernetes.io/worker: worker
+nodeSelectorEnabled: true    # set false to suppress that annotation even when
+                             # nodeSelector is set (a map default can't be cleared
+                             # via Helm merge) — e.g. namespaces whose pods must
+                             # run cluster-wide
 ```
 
 ### `common.deployment`
