@@ -45,3 +45,19 @@
        "nodeSelectorEnabled" false
        "podSecurity" (dict "enabled" true "enforce" "privileged" "audit" "privileged" "warn" "privileged"))
      "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Template" .Template) }}
+---
+{{- /* common 0.5.3: automountServiceAccountToken passthrough on the pod spec of
+       cronjob/job (also wired into deployment/statefulset). Rendered only when the
+       key is set, so charts that omit it are unchanged. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "automount-cron"
+     "Config" (dict
+       "schedule" "0 * * * *"
+       "automountServiceAccountToken" false
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "automount-job"
+     "Config" (dict
+       "automountServiceAccountToken" false
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}

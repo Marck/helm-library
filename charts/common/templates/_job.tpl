@@ -28,6 +28,11 @@ spec:
         {{- include "common.labels" $root | nindent 8 }}
         app.kubernetes.io/component: {{ $comp }}
     spec:
+      {{- if hasKey $config "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ $config.automountServiceAccountToken }}
+      {{- else if hasKey $root.Values "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ $root.Values.automountServiceAccountToken }}
+      {{- end }}
       restartPolicy: {{ $config.restartPolicy | default "OnFailure" }}
       {{- with (default $root.Values.podSecurityContext $config.podSecurityContext) }}
       securityContext:
