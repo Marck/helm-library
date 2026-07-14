@@ -99,6 +99,7 @@ Key values fields under `Config`:
 | `imagePullSecrets` | List of image pull secrets (e.g. for private registries) |
 | `securityContext` | Container-level security context |
 | `podSecurityContext` | Pod-level security context |
+| `automountServiceAccountToken` | Set `false` to stop mounting the SA token into pods that never call the Kubernetes API (deployment/statefulset/job/cronjob). Only rendered when explicitly set. |
 | `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
 | `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
 | `nodeSelector` | Pod node selector |
