@@ -43,6 +43,11 @@ spec:
       {{- if or $sa.create $sa.name }}
       serviceAccountName: {{ include "common.serviceAccountName" $root }}
       {{- end }}
+      {{- if hasKey $config "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ $config.automountServiceAccountToken }}
+      {{- else if hasKey $root.Values "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ $root.Values.automountServiceAccountToken }}
+      {{- end }}
       {{- if $config.hostNetwork }}
       hostNetwork: {{ $config.hostNetwork }}
       {{- end }}
