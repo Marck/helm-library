@@ -48,6 +48,10 @@ spec:
           nodeSelector:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with (default $root.Values.imagePullSecrets $config.imagePullSecrets) }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if $config.containers }}
           containers:
             {{- toYaml $config.containers | nindent 12 }}

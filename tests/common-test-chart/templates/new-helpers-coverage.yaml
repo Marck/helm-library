@@ -53,6 +53,7 @@
      "Config" (dict
        "schedule" "0 * * * *"
        "automountServiceAccountToken" false
+       "imagePullSecrets" (list (dict "name" "ghcr-pull"))
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
 ---
