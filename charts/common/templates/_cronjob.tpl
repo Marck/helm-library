@@ -34,6 +34,11 @@ spec:
             {{- include "common.labels" $root | nindent 12 }}
             app.kubernetes.io/component: {{ $comp }}
         spec:
+          {{- /* Same SA resolution as common.deployment — set when created or named */}}
+          {{- $sa := (default $root.Values.serviceAccount $config.serviceAccount) | default dict }}
+          {{- if or $sa.create $sa.name }}
+          serviceAccountName: {{ $sa.name | default (include "common.serviceAccountName" $root) }}
+          {{- end }}
           {{- if hasKey $config "automountServiceAccountToken" }}
           automountServiceAccountToken: {{ $config.automountServiceAccountToken }}
           {{- else if hasKey $root.Values "automountServiceAccountToken" }}
