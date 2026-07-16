@@ -21,6 +21,11 @@ common:
   podLabels:
     example.com/pod: test
 
+  # Exercises the common 0.5.5 deploymentAnnotations addition (annotations on
+  # the Deployment object itself, e.g. ArgoCD sync-waves)
+  deploymentAnnotations:
+    argocd.argoproj.io/sync-wave: "1"
+
   persistence:
     enabled: true
     nfs:
