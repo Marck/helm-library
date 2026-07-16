@@ -62,3 +62,18 @@
        "automountServiceAccountToken" false
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
+---
+{{- /* common 0.5.6: serviceAccountName on job/cronjob pod specs (same SA
+       resolution as common.deployment — rendered when created or named). */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "sa-cron"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "serviceAccount" (dict "name" "watchdog-sa")
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "sa-job"
+     "Config" (dict
+       "serviceAccount" (dict "name" "watchdog-sa")
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}

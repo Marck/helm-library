@@ -100,6 +100,7 @@ Key values fields under `Config`:
 | `securityContext` | Container-level security context |
 | `podSecurityContext` | Pod-level security context |
 | `automountServiceAccountToken` | Set `false` to stop mounting the SA token into pods that never call the Kubernetes API (deployment/statefulset/job/cronjob). Only rendered when explicitly set. |
+| `serviceAccount` (job/cronjob Config or root) | When `create` or `name` is set, `serviceAccountName` is rendered on job/cronjob pods (Config-level `name` wins) — for workloads that call the Kubernetes API with scoped RBAC |
 | `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
 | `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
 | `nodeSelector` | Pod node selector |
