@@ -7,6 +7,12 @@ kind: Deployment
 metadata:
   name: {{ include "common.fullname" $root }}-{{ $comp }}
   namespace: {{ $root.Values.namespace | default $root.Release.Namespace }}
+  {{- /* Annotations on the Deployment OBJECT (not the pod template) — e.g.
+       argocd.argoproj.io/sync-wave to stagger rollouts of related workloads. */}}
+  {{- with $config.deploymentAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
   labels:
 {{- include "common.labels" $root | nindent 4 }}
 spec:

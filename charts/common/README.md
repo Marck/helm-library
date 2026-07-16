@@ -106,6 +106,7 @@ Key values fields under `Config`:
 | `affinity` | Pod affinity rules |
 | `tolerations` | Pod tolerations |
 | `podLabels` | Extra labels merged into the pod template (e.g. to group pods across components under one Service selector) |
+| `deploymentAnnotations` | Annotations on the Deployment object itself (not the pods) — e.g. `argocd.argoproj.io/sync-wave` to stagger rollouts of related workloads |
 
 **Multi-port container example:**
 ```yaml
