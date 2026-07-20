@@ -92,6 +92,13 @@ common:
     - configMapRef:
         name: test-cm
 
+  # Exercises the common 0.5.7 hostAliases addition (static /etc/hosts entries,
+  # e.g. pinning an OIDC host to a Service ClusterIP to dodge hairpin NAT)
+  hostAliases:
+    - ip: 10.43.84.116
+      hostnames:
+        - auth.example.com
+
   # Exercises the hostNetwork + sidecar additions in common 0.4.3
   hostNetwork: true
   additionalContainers:
