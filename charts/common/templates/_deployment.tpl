@@ -60,6 +60,13 @@ spec:
       {{- if or $config.dnsPolicy $config.hostNetwork }}
       dnsPolicy: {{ $config.dnsPolicy | default "ClusterFirstWithHostNet" }}
       {{- end }}
+      {{- /* Static /etc/hosts entries — e.g. pin an in-cluster hostname to a
+           Service ClusterIP to avoid intermittent hairpin NAT on an OIDC
+           back-channel (see the audiobookshelf/karakeep charts). */}}
+      {{- with (default $root.Values.hostAliases $config.hostAliases) }}
+      hostAliases:
+{{ toYaml . | indent 6 }}
+      {{- end }}
       {{- if or $config.imagePullSecrets $root.Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml (default $root.Values.imagePullSecrets $config.imagePullSecrets) | indent 6 }}
