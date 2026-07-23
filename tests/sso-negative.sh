@@ -59,9 +59,29 @@ expect_fail "mode none without reason" "no sso.reason" \
   --set sso.enforce=true --set sso.mode=none
 
 # Declaration and Ingress must agree when a marker is configured.
-expect_fail "forward-auth marker absent" "do not reference" \
+expect_fail "forward-auth marker absent" "does not reference" \
   --set sso.enforce=true --set sso.mode=forward-auth \
   --set sso.forwardAuthMarker=not-in-the-annotations
+
+# An Ingress deliberately off the wall must say why.
+expect_fail "exempt ingress without reason" "no sso.exemptReason" \
+  --set sso.enforce=true --set sso.mode=forward-auth \
+  --set sso.forwardAuthMarker=not-in-the-annotations \
+  --set sso.exemptIngresses[0]=extra-ingress
+
+# ...and with a reason it renders, marker or not (that is the point).
+expect_ok "exempt ingress with reason" \
+  --set sso.enforce=true --set sso.mode=forward-auth \
+  --set sso.forwardAuthMarker=not-in-the-annotations \
+  --set sso.exemptIngresses[0]=extra-ingress \
+  --set sso.exemptReason="API path: native clients authenticate with an API key"
+
+# An exemption only covers the Ingress it names — others still need the marker.
+expect_fail "exemption does not leak to other ingresses" "does not reference" \
+  --set sso.enforce=true --set sso.mode=forward-auth \
+  --set sso.forwardAuthMarker=not-in-the-annotations \
+  --set sso.exemptIngresses[0]=some-other-ingress \
+  --set sso.exemptReason="unrelated"
 
 # The check is OPT-IN: a chart that never heard of it renders unchanged.
 expect_ok "opt-out renders (enforce false)" \

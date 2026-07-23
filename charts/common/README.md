@@ -281,6 +281,8 @@ CI, where every chart is visible at once.
 | `sso.reason` | Required when `mode: none` — *why* the app is exempt |
 | `sso.allowedModes` | Optional: override the accepted modes |
 | `sso.forwardAuthMarker` | Optional: substring that must appear in the Ingress annotations when `mode: forward-auth` (e.g. the edge-auth middleware reference) |
+| `sso.exemptIngresses` | Optional: `NameSuffix`es of Ingresses deliberately **not** behind the wall — e.g. an API path whose native clients authenticate themselves |
+| `sso.exemptReason` | Required when `exemptIngresses` is non-empty |
 
 **Example:**
 ```yaml
@@ -298,9 +300,25 @@ sso:
     Native auth: the mobile app speaks the API and breaks behind a login wall.
 ```
 
+A partial exemption — UI behind the wall, one path deliberately not — is
+declared rather than silently allowed. The exemption covers only the Ingress it
+names; every other Ingress still needs the marker:
+
+```yaml
+sso:
+  enforce: true
+  mode: forward-auth
+  forwardAuthMarker: "forward-auth@kubernetescrd"
+  exemptIngresses: [api]
+  exemptReason: >-
+    /api keeps the app's own API-key auth: it breaks behind a login wall
+    (no browser to complete the redirect).
+```
+
 Failure modes (all `helm template` errors, with the chart name and what to add):
-missing `mode`, unknown `mode`, `mode: none` without a `reason`, or a
-`forward-auth` declaration whose Ingress lacks the configured marker. Covered by
+missing `mode`, unknown `mode`, `mode: none` without a `reason`, a
+`forward-auth` declaration whose Ingress lacks the configured marker, or
+`exemptIngresses` without an `exemptReason`. Covered by
 `tests/sso-negative.sh`.
 
 ### `common.pv`

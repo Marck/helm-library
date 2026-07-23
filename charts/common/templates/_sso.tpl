@@ -21,6 +21,10 @@
       forwardAuthMarker: ""     # optional: substring that must appear in the
                                 # Ingress annotations when mode is forward-auth
                                 # (e.g. the edge-auth middleware reference)
+      exemptIngresses: []       # optional: NameSuffixes of Ingresses that are
+                                # deliberately NOT behind the wall (e.g. an API
+                                # path a native client authenticates itself)
+      exemptReason: ""          # required when exemptIngresses is non-empty
 
   Called automatically by common.ingress. Charts whose Ingress comes from an
   upstream subchart can invoke it directly:
@@ -45,12 +49,17 @@
 {{-     end -}}
 {{-   end -}}
 {{-   if eq $mode "forward-auth" -}}
+{{-     $exempt := $sso.exemptIngresses | default list -}}
+{{-     if and $exempt (not (trim ($sso.exemptReason | default ""))) -}}
+{{-       fail (printf "common.sso: chart %q lists sso.exemptIngresses %v but no sso.exemptReason. An Ingress deliberately left off the auth wall must say why." $chart $exempt) -}}
+{{-     end -}}
+{{-     $suffix := .NameSuffix | default "ingress" -}}
 {{-     $marker := $sso.forwardAuthMarker | default "" -}}
-{{-     if $marker -}}
+{{-     if and $marker (not (has $suffix $exempt)) -}}
 {{-       $ing := .Ingress | default $root.Values.ingress | default dict -}}
 {{-       $ann := toYaml ($ing.annotations | default dict) -}}
 {{-       if not (contains $marker $ann) -}}
-{{-         fail (printf "common.sso: chart %q declares sso.mode: forward-auth but its Ingress annotations do not reference %q — the declaration and the Ingress disagree." $chart $marker) -}}
+{{-         fail (printf "common.sso: chart %q declares sso.mode: forward-auth but Ingress %q does not reference %q — the declaration and the Ingress disagree. If it is meant to bypass the wall, list %q under sso.exemptIngresses with an sso.exemptReason." $chart $suffix $marker $suffix) -}}
 {{-       end -}}
 {{-     end -}}
 {{-   end -}}
