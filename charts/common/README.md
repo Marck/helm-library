@@ -255,6 +255,54 @@ ingress:
   servicePort: 8096
 ```
 
+### `common.sso.validate`
+
+Parameters: `Root`, optional `Ingress`
+
+**Opt-in** guard: a chart that exposes an Ingress must *declare* how it is
+authenticated, so a new app can't quietly ship with no SSO. Does nothing unless
+`sso.enforce` is `true` — charts without an `sso` block render exactly as
+before. Called automatically by [`common.ingress`](#commoningress); charts whose
+Ingress comes from an upstream subchart can invoke it directly:
+
+```
+{{ include "common.sso.validate" (dict "Root" .) }}
+```
+
+It validates the **declaration only** — it is provider-agnostic and knows
+nothing about any particular identity provider. Checking that the declaration
+matches reality (does the IdP actually have a client for this app?) belongs in
+CI, where every chart is visible at once.
+
+| Field | Description |
+| --- | --- |
+| `sso.enforce` | Must be `true` to run any check (default: off) |
+| `sso.mode` | Required: how the app authenticates — `oidc`, `forward-auth` or `none` |
+| `sso.reason` | Required when `mode: none` — *why* the app is exempt |
+| `sso.allowedModes` | Optional: override the accepted modes |
+| `sso.forwardAuthMarker` | Optional: substring that must appear in the Ingress annotations when `mode: forward-auth` (e.g. the edge-auth middleware reference) |
+
+**Example:**
+```yaml
+sso:
+  enforce: true
+  mode: forward-auth
+  forwardAuthMarker: "forward-auth@kubernetescrd"
+```
+
+```yaml
+sso:
+  enforce: true
+  mode: none
+  reason: >-
+    Native auth: the mobile app speaks the API and breaks behind a login wall.
+```
+
+Failure modes (all `helm template` errors, with the chart name and what to add):
+missing `mode`, unknown `mode`, `mode: none` without a `reason`, or a
+`forward-auth` declaration whose Ingress lacks the configured marker. Covered by
+`tests/sso-negative.sh`.
+
 ### `common.pv`
 
 Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.Values`)

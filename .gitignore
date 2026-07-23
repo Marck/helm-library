@@ -4,3 +4,6 @@ tests/**/charts/
 tests/**/Chart.lock
 .cr-release-packages/
 .cr-index/
+
+# local worktrees used while developing this library
+.git-worktrees/

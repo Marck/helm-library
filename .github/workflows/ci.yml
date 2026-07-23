@@ -31,3 +31,8 @@ jobs:
           helm lint --strict tests/common-test-chart
           helm template test tests/common-test-chart -f tests/common-test-chart/values.yaml
           helm template test tests/common-test-chart -f tests/common-test-chart/values-multi-pv.yaml
+
+      # common.sso.validate is only useful if it also REJECTS bad input, which
+      # `helm template` alone can't assert (a passing render proves nothing).
+      - name: SSO policy negative tests
+        run: tests/sso-negative.sh
