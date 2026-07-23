@@ -106,3 +106,13 @@ common:
       image: nginx:stable
       ports:
         - containerPort: 8080
+
+# ── common 0.5.8: opt-in SSO policy check ────────────────────────────────────
+# Top-level (not under `common:`) because the direct common.ingress call in
+# templates/new-helpers-coverage.yaml passes Root = . — that second Ingress
+# carries the matching annotation, so this covers the happy path including
+# forwardAuthMarker. Negative cases are asserted by tests/sso-negative.sh.
+sso:
+  enforce: true
+  mode: forward-auth
+  forwardAuthMarker: "edge-auth@example"
