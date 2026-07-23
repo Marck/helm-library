@@ -19,7 +19,7 @@
 {{- if and $ingress $ingress.enabled }}
 {{- /* Opt-in SSO policy check (no-op unless Values.sso.enforce) — an app that
        gets a public Ingress must say how it is authenticated. */ -}}
-{{- include "common.sso.validate" (dict "Root" $root "Ingress" $ingress) -}}
+{{- include "common.sso.validate" (dict "Root" $root "Ingress" $ingress "NameSuffix" $nameSuffix) -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
