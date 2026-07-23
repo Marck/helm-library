@@ -8,10 +8,14 @@
 {{ include "common.configmap" (dict "Root" . "Name" "extra-cm" "Data" (dict
      "extra.json" (toPrettyJson (dict "hello" "world")))) }}
 ---
+{{- /* The annotation below is what the top-level `sso.forwardAuthMarker` in
+       values.yaml requires — covers the happy path of the common 0.5.8 opt-in
+       SSO policy check. Negative cases live in tests/sso-negative.sh. */}}
 {{ include "common.ingress" (dict "Root" .
      "Ingress" (dict
        "enabled" true
        "className" "nginx"
+       "annotations" (dict "example.com/middlewares" "edge-auth@example")
        "hosts" (list (dict "host" "extra.example.com" "paths" (list (dict "path" "/" "pathType" "Prefix"))))
        "tls" true
        "tlsSecretName" "extra-tls")

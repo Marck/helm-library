@@ -17,6 +17,9 @@
        second ingress targets a different service (ServicePort is passed explicitly). */ -}}
 {{- $svcPort := .ServicePort | default $ingress.servicePort | default (($root.Values.service | default dict).port) }}
 {{- if and $ingress $ingress.enabled }}
+{{- /* Opt-in SSO policy check (no-op unless Values.sso.enforce) — an app that
+       gets a public Ingress must say how it is authenticated. */ -}}
+{{- include "common.sso.validate" (dict "Root" $root "Ingress" $ingress) -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
