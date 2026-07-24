@@ -381,6 +381,10 @@ persistenceVolumes:
       - ReadWriteMany
     storageClassName: ""
     reclaimPolicy: Retain
+    # Same key as the single-persistence form. On a single-writer NFSv3 volume,
+    # `nolock` keeps file locks client-local so an unclean node reboot cannot
+    # strand them on the server.
+    mountOptions: [vers=3, nolock]
   media:
     enabled: true
     name: custom-media-pv  # Optional: override the generated name
