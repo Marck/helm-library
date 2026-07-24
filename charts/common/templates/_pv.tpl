@@ -53,6 +53,12 @@ spec:
           - {{ . }}
           {{- end }}
   {{- end }}
+  {{- if $pv.mountOptions }}
+  mountOptions:
+  {{- range $pv.mountOptions }}
+    - {{ . }}
+  {{- end }}
+  {{- end }}
 {{- end }}
 {{- end }}
 {{- else }}

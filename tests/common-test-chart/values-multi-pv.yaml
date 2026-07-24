@@ -25,6 +25,8 @@ persistenceVolumes:
       - ReadWriteMany
     storageClassName: ""
     reclaimPolicy: Retain
+  # Covers mountOptions on the multi-PV path; `data` above deliberately omits it
+  # so both branches (present / absent) render in one pass.
   config:
     enabled: true
     nfs:
@@ -35,6 +37,9 @@ persistenceVolumes:
       - ReadWriteMany
     storageClassName: ""
     reclaimPolicy: Retain
+    mountOptions:
+      - vers=3
+      - nolock
   media:
     enabled: true
     name: custom-media-pv
