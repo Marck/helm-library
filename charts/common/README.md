@@ -164,6 +164,23 @@ Identical to `common.deployment` but renders a `StatefulSet`. Additional fields:
 | `podManagementPolicy` | `OrderedReady` or `Parallel` |
 | `volumeClaimTemplates` | List of VolumeClaimTemplate objects (StatefulSet-managed PVCs) |
 
+### `common.daemonset`
+
+Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.Values`)
+
+A `DaemonSet` counterpart to `common.deployment` — same value shape
+(image/env/probes/volumes/securityContext/resources/tolerations/affinity), so a
+component can move between the two with no value changes. Used for per-node agents
+(e.g. the `beszel` node agent). There is no `replicaCount`/`strategy`; instead:
+
+| Field | Description |
+| --- | --- |
+| `updateStrategy` | DaemonSet update strategy (default `RollingUpdate`) |
+| `hostNetwork` | Share the host network namespace (sets `dnsPolicy: ClusterFirstWithHostNet`) |
+| `hostPID` | Share the host PID namespace |
+| `ports[].hostPort` | Bind a container port on the node |
+| `nodeSelector` | Honoured when the component sets the key — **an empty map clears the chart-level default** so the DaemonSet lands on every node; omit the key to inherit `Root.Values.nodeSelector` |
+
 ### `common.service`
 
 Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.Values`)
