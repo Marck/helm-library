@@ -81,3 +81,21 @@
        "serviceAccount" (dict "name" "watchdog-sa")
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
+---
+{{- /* common 0.6.0: common.daemonset — a per-node agent (hostNetwork, hostPort,
+       control-plane tolerations, an empty env value, and an explicitly-empty
+       nodeSelector that must CLEAR the inherited default rather than fall back to
+       it). Mirrors the beszel agent. */}}
+{{ include "common.daemonset" (dict "Root" . "Component" "node-agent"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "nodeSelector" (dict)
+       "tolerations" (list (dict
+         "effect" "NoSchedule"
+         "key" "node-role.kubernetes.io/control-plane"
+         "operator" "Exists"))
+       "env" (dict "KEY" "" "LISTEN" "45876")
+       "ports" (list (dict "containerPort" 45876 "hostPort" 45876 "name" "agent"))
+       "volumeMounts" (list (dict "name" "agent-data" "mountPath" "/var/lib/agent"))
+       "volumes" (list (dict "name" "agent-data" "emptyDir" (dict))))) }}
