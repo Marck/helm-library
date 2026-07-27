@@ -99,3 +99,29 @@
        "ports" (list (dict "containerPort" 45876 "hostPort" 45876 "name" "agent"))
        "volumeMounts" (list (dict "name" "agent-data" "mountPath" "/var/lib/agent"))
        "volumes" (list (dict "name" "agent-data" "emptyDir" (dict))))) }}
+---
+{{- /* common 0.6.1: a COMPONENT-scoped ServiceAccount — created with an explicit
+       Name, bound by common.rbac's ServiceAccountName, and consumed by the Job via
+       the Config-level serviceAccount.name. The chart-wide SA (values.yaml
+       serviceAccount.create) must be untouched by all three, so a chart can give
+       one hook Job API access without handing the SA to every pod. */}}
+{{ include "common.serviceaccount" (dict "Root" .
+     "Name" "scoped-hook-sa"
+     "Config" (dict "serviceAccount" (dict "create" true "automount" false))) }}
+---
+{{ include "common.rbac" (dict "Root" .
+     "ServiceAccountName" "scoped-hook-sa"
+     "Config" (dict "rbac" (dict
+       "create" true
+       "name" "scoped-hook-role"
+       "rules" (list (dict
+         "apiGroups" (list "")
+         "resources" (list "pods/exec")
+         "verbs" (list "create")))))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "scoped-hook-job"
+     "Config" (dict
+       "serviceAccount" (dict "name" "scoped-hook-sa")
+       "automountServiceAccountToken" true
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}
