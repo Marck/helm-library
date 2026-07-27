@@ -100,7 +100,7 @@ Key values fields under `Config`:
 | `securityContext` | Container-level security context |
 | `podSecurityContext` | Pod-level security context |
 | `automountServiceAccountToken` | Set `false` to stop mounting the SA token into pods that never call the Kubernetes API (deployment/statefulset/job/cronjob). Only rendered when explicitly set. |
-| `serviceAccount` (job/cronjob Config or root) | When `create` or `name` is set, `serviceAccountName` is rendered on job/cronjob pods (Config-level `name` wins) — for workloads that call the Kubernetes API with scoped RBAC |
+| `serviceAccount` (Config or root) | When `create` or `name` is set, `serviceAccountName` is rendered on the pod (Config-level `name` wins) — for workloads that call the Kubernetes API with scoped RBAC. Honoured by deployment, daemonset, job and cronjob |
 | `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
 | `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
 | `nodeSelector` | Pod node selector |
@@ -612,7 +612,7 @@ Generates pod annotations with checksums for configMaps and sealedSecrets, so po
 
 ### `common.serviceaccount`
 
-Parameters: `Root`, `Config` (optional)
+Parameters: `Root`, `Config` (optional), `Name` (optional)
 
 Renders a ServiceAccount when `serviceAccount.create` is true. `common.deployment` automatically sets `serviceAccountName` when `serviceAccount.create` or `serviceAccount.name` is set.
 
@@ -624,11 +624,28 @@ serviceAccount:
   automount: true
 ```
 
+**Component-scoped ServiceAccount.** Pass `Name` when only *one* workload needs API access — a hook Job, a watchdog — so the rest of the chart keeps running under the chart-wide (tokenless) SA rather than every pod inheriting the RBAC. `common.rbac` binds to it via `ServiceAccountName`, and the workload picks it up through its `Config`:
+
+```yaml
+{{ include "common.serviceaccount" (dict "Root" . "Name" "myapp-hook"
+     "Config" (dict "serviceAccount" (dict "create" true "automount" false))) }}
+---
+{{ include "common.rbac" (dict "Root" . "ServiceAccountName" "myapp-hook"
+     "Config" (dict "rbac" (dict "create" true "name" "myapp-hook" "rules" (list
+       (dict "apiGroups" (list "") "resources" (list "pods/exec") "verbs" (list "create")))))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "hook" "Config" (dict
+     "serviceAccount" (dict "name" "myapp-hook")
+     "automountServiceAccountToken" true)) }}
+```
+
+`serviceAccount.name` in a workload's `Config` is honoured by `common.deployment`, `common.daemonset`, `common.job` and `common.cronjob` alike; `automountServiceAccountToken` is set on the pod, which overrides the SA-level `automount`.
+
 ### `common.rbac`
 
-Parameters: `Root`, `Config` (optional)
+Parameters: `Root`, `Config` (optional), `ServiceAccountName` (optional)
 
-Renders a Role + RoleBinding (or ClusterRole + ClusterRoleBinding with `clusterWide: true`) bound to the chart's ServiceAccount.
+Renders a Role + RoleBinding (or ClusterRole + ClusterRoleBinding with `clusterWide: true`) bound to the chart's ServiceAccount — or to `ServiceAccountName`, for a component-scoped SA (see above).
 
 ```yaml
 rbac:

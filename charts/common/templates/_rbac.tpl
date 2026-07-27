@@ -2,6 +2,13 @@
   common.rbac — renders a (Cluster)Role and a matching (Cluster)RoleBinding to the
   chart's ServiceAccount. Namespaced Role/RoleBinding is used unless clusterWide: true.
 
+  Params:
+    Root
+    Config              (optional) — where rbac is read from; defaults to root values
+    ServiceAccountName  (optional) — bind to this SA instead of the chart-wide one,
+                                     for a component-scoped SA created with
+                                     common.serviceaccount's matching Name param
+
   Values:
     rbac:
       create: true
@@ -43,7 +50,7 @@ roleRef:
   name: {{ $name }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "common.serviceAccountName" $root }}
+    name: {{ .ServiceAccountName | default (include "common.serviceAccountName" $root) }}
     namespace: {{ $namespace }}
 {{- end }}
 {{- end }}

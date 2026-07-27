@@ -51,7 +51,7 @@ spec:
     spec:
       {{- $sa := (default $root.Values.serviceAccount $config.serviceAccount) | default dict }}
       {{- if or $sa.create $sa.name }}
-      serviceAccountName: {{ include "common.serviceAccountName" $root }}
+      serviceAccountName: {{ $sa.name | default (include "common.serviceAccountName" $root) }}
       {{- end }}
       {{- if hasKey $config "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ $config.automountServiceAccountToken }}

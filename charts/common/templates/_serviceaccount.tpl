@@ -1,6 +1,17 @@
 {{- /*
   common.serviceaccount — renders a ServiceAccount when serviceAccount.create is true.
 
+  Params:
+    Root
+    Config  (optional) — where serviceAccount is read from; defaults to root values
+    Name    (optional) — explicit SA name, for a COMPONENT-scoped ServiceAccount that
+                         only one workload uses (e.g. a hook Job that calls the API).
+                         Without it the chart-wide common.serviceAccountName is used,
+                         which every common.deployment in the chart also references —
+                         so a chart needing RBAC for just one pod would otherwise have
+                         to hand the SA to all of them. Pair with common.rbac's
+                         ServiceAccountName and the job/cronjob Config serviceAccount.name.
+
   Values:
     serviceAccount:
       create: true
@@ -16,7 +27,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "common.serviceAccountName" $root }}
+  name: {{ .Name | default (include "common.serviceAccountName" $root) }}
   namespace: {{ $root.Values.namespace | default $root.Release.Namespace }}
   labels:
 {{- include "common.labels" $root | nindent 4 }}
