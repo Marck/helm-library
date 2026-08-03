@@ -125,3 +125,18 @@
        "automountServiceAccountToken" true
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
+---
+{{- /*
+  common 0.6.2: `template.labels` / `template.annotations` on a sealedSecrets
+  entry — metadata for the Secret the controller UNSEALS, not the SealedSecret.
+  The first entry adds an ArgoCD repo-creds label (the case this was added for);
+  the second sets nothing, proving the defaults still render on their own.
+*/ -}}
+{{ include "common.sealedsecret" (dict "Root" . "Config" (dict "sealedSecrets" (list
+     (dict "enabled" true "name" "ss-with-template-meta" "scope" "cluster-wide"
+       "templateData" (dict "url" "AgAstub==")
+       "template" (dict
+         "labels" (dict "argocd.argoproj.io/secret-type" "repo-creds")
+         "annotations" (dict "example.com/note" "unsealed-secret-metadata")))
+     (dict "enabled" true "name" "ss-plain"
+       "templateData" (dict "token" "AgAstub=="))))) }}
