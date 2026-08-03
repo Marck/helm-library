@@ -598,6 +598,28 @@ sealedSecrets:
       password: AgB...encrypted...
 ```
 
+**Metadata on the unsealed Secret** (`template`, since 0.6.2). This is metadata
+for the Secret the controller *creates*, not for the SealedSecret — needed
+whenever something selects on the result. ArgoCD, for one, only treats a Secret
+as repository credentials if it carries the right label:
+
+```yaml
+sealedSecrets:
+  - enabled: true
+    name: ssh-repo-creds
+    scope: cluster-wide
+    template:
+      labels:
+        argocd.argoproj.io/secret-type: repo-creds
+      annotations:
+        example.com/owner: platform
+    templateData:
+      sshPrivateKey: AgB...encrypted...
+```
+
+The chart's own `common.labels` and the sealing annotation are always emitted;
+an entry can add to them but cannot drop them or re-scope its own sealing.
+
 ### `common.configmap`
 
 Parameters: `Root`
