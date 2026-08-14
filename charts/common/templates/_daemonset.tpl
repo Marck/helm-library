@@ -130,6 +130,9 @@ spec:
               {{- if .hostPort }}
               hostPort: {{ .hostPort }}
               {{- end }}
+              {{- if .hostIP }}
+              hostIP: {{ .hostIP | quote }}
+              {{- end }}
               {{- if .name }}
               name: {{ .name }}
               {{- end }}

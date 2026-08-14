@@ -67,6 +67,12 @@ spec:
       hostAliases:
 {{ toYaml . | indent 6 }}
       {{- end }}
+      {{- /* Time the pod gets to shut down cleanly before SIGKILL. Raise it for
+           workloads that must flush state on exit (databases, systemd-in-a-
+           container); the 30s default truncates those. */}}
+      {{- with (default $root.Values.terminationGracePeriodSeconds $config.terminationGracePeriodSeconds) }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
       {{- if or $config.imagePullSecrets $root.Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml (default $root.Values.imagePullSecrets $config.imagePullSecrets) | indent 6 }}
@@ -88,6 +94,13 @@ spec:
           {{- if or $config.securityContext $root.Values.securityContext }}
           securityContext:
 {{ toYaml (default $root.Values.securityContext $config.securityContext) | indent 12 }}
+          {{- end }}
+          {{- /* Allocate a TTY. Only needed by images whose PID 1 writes its
+               startup output to /dev/console rather than stdout — systemd is the
+               one that matters: without this its boot log, and the reason it
+               exited, are simply not there. */}}
+          {{- if $config.tty }}
+          tty: {{ $config.tty }}
           {{- end }}
           {{- if $config.command }}
           command:
@@ -127,6 +140,16 @@ spec:
               {{- end }}
               {{- if .name }}
               name: {{ .name }}
+              {{- end }}
+              {{- /* hostPort binds the port on the NODE — one pod per node, and a
+                   collision leaves the pod Pending forever. Only for workloads a
+                   Service cannot front (e.g. a loopback-only admin API). hostIP
+                   narrows the bind, e.g. 127.0.0.1. */}}
+              {{- if .hostPort }}
+              hostPort: {{ .hostPort }}
+              {{- end }}
+              {{- if .hostIP }}
+              hostIP: {{ .hostIP | quote }}
               {{- end }}
           {{- end }}
           {{- else if $config.service }}
@@ -207,6 +230,14 @@ spec:
           {{- if $config.resources }}
           resources:
 {{ toYaml $config.resources | indent 12 }}
+          {{- end }}
+          {{- /* Container lifecycle hooks (postStart / preStop). postStart runs
+               CONCURRENTLY with the entrypoint — never assume the app is up. A
+               failing hook kills the container, so keep the command idempotent
+               (it re-runs on every restart). */}}
+          {{- with $config.lifecycle }}
+          lifecycle:
+{{ tpl (toYaml .) $root | indent 12 }}
           {{- end }}
           {{- if or $config.volumeMounts (or $config.persistence $root.Values.persistence) }}
           volumeMounts:
