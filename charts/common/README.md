@@ -89,7 +89,7 @@ Key values fields under `Config`:
 | `resources` | Resource requests and limits (`limits`, `requests`) |
 | `env` | Map of env vars — plain values, `""` for empty, or full `valueFrom` maps |
 | `envFrom` | List of `secretRef`/`configMapRef` sources (tpl-evaluated) |
-| `ports` | List of `{containerPort, protocol?, name?}` for multi-port containers |
+| `ports` | List of `{containerPort, protocol?, name?, hostPort?, hostIP?}` for multi-port containers |
 | `service.port` | Used as single container port when `ports` is not set |
 | `probes.liveness/readiness/startup` | See [PROBES.md](PROBES.md) |
 | `volumeMounts` | List of volume mounts (raw YAML, supports `tpl`) |
@@ -108,6 +108,9 @@ Key values fields under `Config`:
 | `tolerations` | Pod tolerations |
 | `podLabels` | Extra labels merged into the pod template (e.g. to group pods across components under one Service selector) |
 | `deploymentAnnotations` | Annotations on the Deployment object itself (not the pods) — e.g. `argocd.argoproj.io/sync-wave` to stagger rollouts of related workloads |
+| `lifecycle` | Container lifecycle hooks (`postStart` / `preStop`), raw YAML, tpl-evaluated |
+| `terminationGracePeriodSeconds` | Seconds the pod gets to stop cleanly before SIGKILL (default 30). Raise it for workloads that flush state on exit |
+| `tty` | Allocate a TTY. Needed by images whose PID 1 logs to `/dev/console` instead of stdout — systemd above all: without it `kubectl logs` shows nothing, including the reason it exited |
 
 **Multi-port container example:**
 ```yaml
@@ -118,6 +121,28 @@ ports:
     protocol: UDP
   - containerPort: 1900
     protocol: UDP
+```
+
+**hostPort** binds the port on the *node* itself, bypassing the Service. Use it
+only where a Service cannot work — typically an admin API that must answer on the
+node's loopback. A port already taken on the node leaves the pod `Pending`
+forever, and only one replica per node can ever bind it:
+```yaml
+ports:
+  - containerPort: 11084
+    hostPort: 11084
+    hostIP: "127.0.0.1"       # bind on loopback only, never the LAN
+```
+
+**Lifecycle hooks.** `postStart` runs *concurrently* with the entrypoint, so it
+must not assume the app is already listening, and a non-zero exit kills the
+container. It also re-runs on every restart — keep it idempotent:
+```yaml
+lifecycle:
+  postStart:
+    exec:
+      command: ["/bin/sh", "-c", "grep -q myhost /etc/hosts || echo \"$HOST_IP myhost\" >> /etc/hosts"]
+terminationGracePeriodSeconds: 120
 ```
 
 **RollingUpdate example:**

@@ -99,6 +99,27 @@ common:
       hostnames:
         - auth.example.com
 
+  # Exercises the common 0.7.0 additions: hostPort/hostIP on a container port,
+  # lifecycle hooks and terminationGracePeriodSeconds
+  ports:
+    - containerPort: 80
+      name: http
+    - containerPort: 11084
+      hostPort: 11084
+      hostIP: "127.0.0.1"
+  lifecycle:
+    postStart:
+      exec:
+        command:
+          - /bin/sh
+          - -c
+          - grep -q example /etc/hosts || echo "127.0.0.1 example" >> /etc/hosts
+    preStop:
+      exec:
+        command: ["/bin/sh", "-c", "sleep 1"]
+  terminationGracePeriodSeconds: 120
+  tty: true
+
   # Exercises the hostNetwork + sidecar additions in common 0.4.3
   hostNetwork: true
   additionalContainers:
