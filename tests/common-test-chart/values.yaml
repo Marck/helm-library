@@ -16,6 +16,8 @@ common:
     loadBalancerIP: 203.0.113.10
     externalTrafficPolicy: Local
     loadBalancerClass: example.io/custom-lb
+    # Exercises the common 0.7.1 nodePort addition on the single-port branch
+    nodePort: 31080
 
   # Exercises the common 0.5.1 podLabels addition
   podLabels:
