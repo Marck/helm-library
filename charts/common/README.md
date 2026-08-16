@@ -223,6 +223,24 @@ Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.V
 | `service.loadBalancerIP` | Request a specific LoadBalancer IP |
 | `service.externalTrafficPolicy` | `Cluster` (default) or `Local` (preserves client source IP) |
 | `service.loadBalancerClass` | LoadBalancer implementation class (e.g. to pick kube-vip over k3s klipper) |
+| `service.nodePort` / `ports[].nodePort` | Pin the node port instead of letting the API server allocate one from 30000-32767. `NodePort` and `LoadBalancer` types only — the API server rejects it on a `ClusterIP`. |
+
+**Pinning a node port.** A `LoadBalancer` Service gets node ports allocated
+whether you ask for them or not, but the allocation is arbitrary and it changes
+whenever the Service is recreated. Pin it when the node address is something a
+human has to be able to type — a break-glass URL for when DNS or the load
+balancer is down is worth nothing if the port moved since you wrote it down.
+Pick a free port in the range and keep it in values.yaml, where it is reviewable:
+
+```yaml
+service:
+  type: LoadBalancer
+  ports:
+    - name: "webui"
+      port: 11443
+      targetPort: 443
+      nodePort: 31443
+```
 
 **Multi-port service example:**
 ```yaml

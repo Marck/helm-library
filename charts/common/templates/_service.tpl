@@ -35,6 +35,9 @@ spec:
       {{- if .name }}
       name: {{ .name | quote }}
       {{- end }}
+      {{- if .nodePort }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
   {{- end }}
   {{- else }}
     - port: {{ $config.service.port | required "service.port is required when service.ports is not configured" }}
@@ -42,6 +45,9 @@ spec:
       protocol: TCP
       {{- if $config.service.portName }}
       name: {{ $config.service.portName }}
+      {{- end }}
+      {{- if $config.service.nodePort }}
+      nodePort: {{ $config.service.nodePort }}
       {{- end }}
   {{- end }}
   selector:
