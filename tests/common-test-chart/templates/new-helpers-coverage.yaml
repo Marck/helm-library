@@ -140,3 +140,18 @@
          "annotations" (dict "example.com/note" "unsealed-secret-metadata")))
      (dict "enabled" true "name" "ss-plain"
        "templateData" (dict "token" "AgAstub=="))))) }}
+---
+{{- /*
+  common 0.7.1: `nodePort` on the multi-port branch of common.service. The first
+  port pins one, the second deliberately does not — proving a pinned port and an
+  API-server-allocated one can sit side by side in the same Service, which is the
+  normal case (you pin only the port a human has to type during an outage).
+
+  The single-port branch is covered by values.yaml's `service.nodePort`.
+*/ -}}
+{{ include "common.service" (dict "Root" . "Component" "pinned-nodeport"
+     "Config" (dict "service" (dict
+       "type" "LoadBalancer"
+       "ports" (list
+         (dict "name" "webui" "port" 11443 "targetPort" 443 "nodePort" 31443)
+         (dict "name" "inform" "port" 8080))))) }}
