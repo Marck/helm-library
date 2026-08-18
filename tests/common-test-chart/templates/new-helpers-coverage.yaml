@@ -82,6 +82,17 @@
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
 ---
+{{- /* common 0.7.2: ttlSecondsAfterFinished on common.cronjob auto-GCs finished
+       Jobs (Complete AND Failed) so they don't linger to failedJobsHistoryLimit.
+       hasKey-guarded, so 0 (delete immediately) renders; omitting it is
+       unchanged. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "ttl-cron"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "ttlSecondsAfterFinished" 300
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true"))) }}
+---
 {{- /* common 0.6.0: common.daemonset — a per-node agent (hostNetwork, hostPort,
        control-plane tolerations, an empty env value, and an explicitly-empty
        nodeSelector that must CLEAR the inherited default rather than fall back to
