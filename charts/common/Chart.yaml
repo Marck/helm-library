@@ -2,4 +2,4 @@ apiVersion: v2
 name: common
 description: Library chart providing reusable PV/PVC templates with NFS support and nodeSelector configuration
 type: library
-version: 0.7.1
+version: 0.7.2

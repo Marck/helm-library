@@ -28,6 +28,13 @@ spec:
       {{- if $config.activeDeadlineSeconds }}
       activeDeadlineSeconds: {{ $config.activeDeadlineSeconds }}
       {{- end }}
+      {{- /* hasKey (not `default`) so ttlSecondsAfterFinished: 0 — delete a
+             finished Job immediately — is honoured; the field auto-GCs finished
+             Jobs (Complete AND Failed) instead of leaving them to accumulate up
+             to failedJobsHistoryLimit. Omitted by default (charts unchanged). */}}
+      {{- if hasKey $config "ttlSecondsAfterFinished" }}
+      ttlSecondsAfterFinished: {{ $config.ttlSecondsAfterFinished }}
+      {{- end }}
       template:
         metadata:
           labels:
