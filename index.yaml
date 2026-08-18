@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   common:
   - apiVersion: v2
+    created: "2026-08-18T08:29:26.592800166Z"
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 33a200923caaa6fcef0ca83687b42d459cd08052753b1382cd48be4365dc154e
+    name: common
+    type: library
+    urls:
+    - common-0.7.2.tgz
+    version: 0.7.2
+  - apiVersion: v2
     created: "2026-08-16T20:27:36.741699267Z"
     description: Library chart providing reusable PV/PVC templates with NFS support
       and nodeSelector configuration
@@ -211,4 +221,4 @@ entries:
     urls:
     - https://Marck.github.io/helm-library/common-0.3.0.tgz
     version: 0.3.0
-generated: "2026-08-16T20:27:36.741849589Z"
+generated: "2026-08-18T08:29:26.592900267Z"
