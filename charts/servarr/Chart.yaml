@@ -1,0 +1,25 @@
+apiVersion: v2
+name: servarr
+description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one implementation of the shape all four had a copy of
+type: application
+version: 0.1.0
+
+# Why this chart exists
+# ---------------------
+# The four Servarr charts in helm-charts were the same chart four times: after
+# normalising the app name, port, uid and image tag, sonarr's and lidarr's
+# values.yaml were IDENTICAL bar one NetworkPolicy. That is ~150 lines of probe
+# tuning, NFS mount options, ingress wiring and auth policy duplicated four ways,
+# where a fix has to be made four times and a fix that is made three times is
+# indistinguishable from one that is made four.
+#
+# Everything here is derived from one `app:` block (name, uid, port), so adding
+# the fifth Servarr app is a dozen lines rather than another 300-line copy.
+# A RELATIVE dependency, deliberately: the release workflow vendors common into
+# this chart before packaging, so a published servarr is self-contained. Pointing
+# at the published index instead would deadlock the first release — servarr 0.1.0
+# needs common 0.8.0, which is published by the same run.
+dependencies:
+  - name: common
+    version: 0.8.0
+    repository: "file://../common"

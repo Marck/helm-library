@@ -139,3 +139,14 @@ sso:
   enforce: true
   mode: forward-auth
   forwardAuthMarker: "edge-auth@example"
+
+# Off by default; tests/ensure-ownership.sh --sets it to prove the refusals
+# (enabled with no paths, and no uid anywhere to inherit) fail the render.
+bareOwnership:
+  enabled: false
+
+# Off by default; tests/init-containers.sh --sets it to prove the waitFor
+# refusals (a bound shorter than the interval, a target with no port).
+bareWait:
+  targets: []
+

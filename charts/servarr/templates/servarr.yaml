@@ -1,0 +1,14 @@
+{{- /* One Servarr app: NFS config (+ the shared media tree), the Deployment,
+       its Service and the forward-auth'd Ingress. The shape is identical for
+       all four apps -- see values.yaml for what each one has to say for itself. */}}
+{{- $ctx := deepCopy . -}}
+{{- $_ := set $ctx "Values" (include "servarr.values" . | fromYaml) -}}
+{{ include "common.pv"  (dict "Root" $ctx) }}
+---
+{{ include "common.pvc" (dict "Root" $ctx) }}
+---
+{{ include "common.deployment" (dict "Root" $ctx "Component" "app") }}
+---
+{{ include "common.service" (dict "Root" $ctx "Component" "app") }}
+---
+{{ include "common.ingress" (dict "Root" $ctx) }}
