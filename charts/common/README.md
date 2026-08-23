@@ -106,6 +106,7 @@ Key values fields under `Config`:
 | `serviceAccount` (Config or root) | When `create` or `name` is set, `serviceAccountName` is rendered on the pod (Config-level `name` wins) — for workloads that call the Kubernetes API with scoped RBAC. Honoured by deployment, daemonset, job and cronjob |
 | `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
 | `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
+| `dnsConfig` | Extra resolver settings (`nameservers`/`searches`/`options`). Left on the default `ClusterFirst` policy these nameservers are **appended after** the cluster resolver, so cluster names keep resolving and the entries act purely as a fallback — how an alert-sending workload still reaches its notification host when in-cluster DNS is degraded. Honoured by deployment, statefulset, daemonset and cronjob (which also gained `dnsPolicy` in 0.9.0) |
 | `nodeSelector` | Pod node selector |
 | `affinity` | Pod affinity rules |
 | `tolerations` | Pod tolerations |
