@@ -2,7 +2,7 @@
   common.daemonset — a DaemonSet counterpart to common.deployment. Same value
   shape (image/env/probes/volumes/securityContext/hostNetwork/tolerations/…) so a
   component can move between the two helpers with no value changes. Used for
-  per-node agents (e.g. the beszel node agent) that must run one pod on every
+  per-node agents (a metrics or log collector, say) that must run one pod on every
   node. There is no replicaCount/strategy here; DaemonSets use updateStrategy.
 */ -}}
 {{- define "common.daemonset" -}}
@@ -79,9 +79,10 @@ spec:
       securityContext:
 {{ toYaml (default $root.Values.podSecurityContext $config.podSecurityContext) | indent 8 }}
       {{- end }}
-      {{- if $config.initContainers }}
+      {{- $inits := include "common.initContainers" (dict "Root" $root "Config" $config) }}
+      {{- if trim $inits }}
       initContainers:
-      {{- toYaml $config.initContainers | nindent 6 }}
+      {{- $inits | trim | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ $comp }}

@@ -30,6 +30,18 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+      # chart-releaser runs `helm package`, which refuses a chart whose
+      # dependencies are not already in charts/. servarr depends on common by
+      # relative path, so resolve it here — that also makes the published servarr
+      # self-contained rather than needing an index that this run has not written
+      # yet.
+      - name: Vendor chart dependencies
+        run: |
+          for chart in charts/*/; do
+            [ -f "$chart/Chart.yaml" ] || continue
+            helm dependency update "$chart"
+          done
+
       - uses: helm/chart-releaser-action@v1.7.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

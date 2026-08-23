@@ -16,7 +16,11 @@ metadata:
 {{- include "common.labels" $root | nindent 4 }}
 spec:
   capacity:
-    storage: {{ $pv.size | required (printf "persistenceVolumes.%s.size is required" $name) }}
+    {{- /* pvCapacity, like the single-PV path below: a PV's capacity is immutable
+           once bound, so a chart whose existing PV is larger than the claim it
+           serves must be able to say both numbers rather than silently ask for a
+           resize the API server will reject. */}}
+    storage: {{ $pv.pvCapacity | default ($pv.size | required (printf "persistenceVolumes.%s.size is required" $name)) }}
   accessModes:
 {{- range ($pv.accessModes | default (list "ReadWriteOnce")) }}
     - {{ . }}

@@ -1,0 +1,11 @@
+# The smallest complete input: what an app chart in helm-charts has to say for
+# itself. `helm lint`/`helm template` need it because app.name/uid/port are
+# required — this chart is deliberately unusable without an identity.
+app:
+  name: sonarr
+  uid: 24
+  port: 8989
+
+image:
+  repository: ghcr.io/linuxserver/sonarr
+  tag: "4.0.19"

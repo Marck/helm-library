@@ -51,9 +51,10 @@ spec:
       securityContext:
 {{ toYaml (default $root.Values.podSecurityContext $config.podSecurityContext) | indent 8 }}
       {{- end }}
-      {{- if $config.initContainers }}
+      {{- $inits := include "common.initContainers" (dict "Root" $root "Config" $config) }}
+      {{- if trim $inits }}
       initContainers:
-      {{- toYaml $config.initContainers | nindent 6 }}
+      {{- $inits | trim | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ $comp }}

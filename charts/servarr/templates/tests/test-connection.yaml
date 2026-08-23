@@ -1,0 +1,20 @@
+{{- /* `helm test` smoke check: can anything in the namespace reach the app's
+       Service? /ping is fine HERE -- it is a one-off manual check, not the
+       kubelet probe that must never queue behind SQLite (see values.yaml). */}}
+{{- $ctx := deepCopy . -}}
+{{- $_ := set $ctx "Values" (include "servarr.values" . | fromYaml) -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "common.fullname" $ctx }}-test-connection"
+  labels:
+{{- include "common.labels" $ctx | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "common.fullname" $ctx }}-app:{{ $ctx.Values.service.port }}{{ $ctx.Values.test.path }}']
+  restartPolicy: Never

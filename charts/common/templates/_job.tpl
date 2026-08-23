@@ -51,6 +51,11 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- $inits := include "common.initContainers" (dict "Root" $root "Config" $config) }}
+      {{- if trim $inits }}
+      initContainers:
+      {{- $inits | trim | nindent 6 }}
+      {{- end }}
       {{- if $config.containers }}
       containers:
         {{- toYaml $config.containers | nindent 8 }}

@@ -23,7 +23,13 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm lint --strict
-        run: helm lint --strict charts/common
+        run: |
+          helm lint --strict charts/common
+          # servarr is deliberately unusable without an app identity, so lint it
+          # with the smallest complete input rather than with none.
+          helm dependency update charts/servarr
+          helm lint --strict charts/servarr -f charts/servarr/ci/example-values.yaml
+          helm template servarr charts/servarr -f charts/servarr/ci/example-values.yaml >/dev/null
 
       - name: Template test chart against local common
         run: |
@@ -36,3 +42,16 @@ jobs:
       # `helm template` alone can't assert (a passing render proves nothing).
       - name: SSO policy negative tests
         run: tests/sso-negative.sh
+
+      # Same reasoning for the init-container helpers: they matter as much for
+      # where they do NOT fire (a second component would mount a volume it never
+      # declared) and for what they refuse (an unbounded wait, an unverified auth
+      # edit) as for what they render, and a passing render cannot assert that.
+      - name: Init-container helper tests
+        run: tests/init-containers.sh
+
+      # The servarr chart's own tests: its auth edit is security-relevant (an
+      # unverified pass starts a Servarr app with no authentication behind a
+      # public Ingress), and a passing render cannot assert that.
+      - name: servarr chart tests
+        run: tests/servarr.sh
