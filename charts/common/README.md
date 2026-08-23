@@ -94,7 +94,10 @@ Key values fields under `Config`:
 | `probes.liveness/readiness/startup` | See [PROBES.md](PROBES.md) |
 | `volumeMounts` | List of volume mounts (raw YAML, supports `tpl`) |
 | `volumes` | List of volumes (raw YAML, supports `tpl`) |
-| `initContainers` | List of init containers (raw YAML). Also honoured by `common.cronjob` — e.g. chowning a mounted NFS directory to the unprivileged uid the Job runs as |
+| `initContainers` | List of init containers (raw YAML). Honoured by deployment, statefulset, daemonset, job and cronjob |
+| `persistenceVolumes.<name>.pvCapacity` | PV capacity when it differs from the claim's `size` (both paths support it; a bound PV's capacity cannot be changed) |
+| `ensureOwnership` | Chown a mounted directory to the uid the workload runs as, before it starts — see [below](#ensureownership) |
+| `waitFor` | Hold the pod at Init until a dependency answers on its port — see [below](#waitfor) |
 | `additionalContainers` | List of extra sidecar containers appended to the pod (raw YAML) |
 | `imagePullSecrets` | List of image pull secrets (e.g. for private registries) |
 | `securityContext` | Container-level security context |
@@ -196,7 +199,7 @@ Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.V
 A `DaemonSet` counterpart to `common.deployment` — same value shape
 (image/env/probes/volumes/securityContext/resources/tolerations/affinity), so a
 component can move between the two with no value changes. Used for per-node agents
-(e.g. the `beszel` node agent). There is no `replicaCount`/`strategy`; instead:
+(a metrics or log collector, say). There is no `replicaCount`/`strategy`; instead:
 
 | Field | Description |
 | --- | --- |
@@ -305,7 +308,7 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt
   hosts:
-    - host: myapp.mastcloud.nl
+    - host: myapp.example.com
       paths:
         - path: /
           pathType: Prefix
@@ -705,6 +708,91 @@ serviceAccount:
 ```
 
 `serviceAccount.name` in a workload's `Config` is honoured by `common.deployment`, `common.daemonset`, `common.job` and `common.cronjob` alike; `automountServiceAccountToken` is set on the pod, which overrides the SA-level `automount`.
+
+### `ensureOwnership`
+
+An NFS export created on the NAS arrives owned by `root`. A workload that runs
+unprivileged — which is most of them — then cannot create a file in its own
+directory, and the failure is quiet: the Deployment is Available, the CronJob
+keeps its schedule, and only the app's log says `permission denied`. The
+key backup in the consuming repo failed exactly this way on every run for two
+days before anything noticed.
+
+Only the `chown` needs root, and only for a moment. Setting `ensureOwnership` on
+any workload `Config` prepends one init container that does it and exits:
+
+```yaml
+ensureOwnership:
+  enabled: true
+  # uid/gid default to the pod's runAsUser / runAsGroup (or fsGroup)
+  paths:
+    - volume: config          # a volume the pod already declares
+      mountPath: /config
+      # mode: "0700"          # optional — omitted leaves the mode alone
+      # recursive: true       # optional — see the warning below
+```
+
+It runs as root with `CHOWN`+`FOWNER` and nothing else: no privilege escalation,
+read-only root filesystem, every other capability dropped. The workload itself
+stays unprivileged. It is idempotent — a no-op once ownership is right — and it
+repairs the directory again if the share is recreated.
+
+It renders **before** the chart's own `initContainers`, so a seeding step that
+writes to the directory finds it already writable.
+
+| Key | Meaning |
+|---|---|
+| `enabled` | Off unless set |
+| `paths[].volume` / `.mountPath` | Which declared volume to mount, and where |
+| `paths[].uid` / `.gid` | Per-path override of the pod-level default |
+| `paths[].mode` | `chmod` after the chown; omit to leave the mode alone |
+| `paths[].recursive` | `chown -R`. Off by default — see below |
+| `uid` / `gid` | Defaults for every path. Inferred from the pod's `runAsUser`/`runAsGroup`, then the container's, then `fsGroup`; the render fails if none of them say |
+| `image` | Defaults to `busybox:1.37` |
+| `resources` | Defaults to 10m/32Mi requests, 64Mi limit |
+
+> **Never point this at a directory more than one chart writes to.** `chown` is
+> not a merge: aimed at a shared media tree it hands that tree to one app's uid
+> and takes it from every other app mounting it. One chart, one directory.
+
+> **`recursive` walks the whole tree on every pod start.** It is for a directory
+> whose *contents* also arrived root-owned; on a large tree it is slow and it
+> rewrites ownership the apps may rely on. Leave it off unless a specific
+> restore made it necessary.
+
+> **A `restricted` PodSecurity namespace rejects it**, because the init
+> container runs as root. Those namespaces need the ownership fixed on the NAS
+> instead.
+
+Covered by `tests/init-containers.sh`, which also asserts the refusals and that
+a second component does not inherit the main workload's paths.
+
+### `waitFor`
+
+An app that starts before its database does not fail cleanly: it crashes, is
+restarted, and ArgoCD shows *the app* as Degraded rather than the thing that is
+actually late. This holds the pod at Init until each dependency answers:
+
+```yaml
+waitFor:
+  timeoutSeconds: 300      # per target (default 300)
+  intervalSeconds: 5       # default 5
+  image: busybox:1.38      # pin it
+  targets:
+    - host: myapp-mariadb
+      port: 3306
+```
+
+One init container regardless of how many targets, checked in order, running as
+the workload's own uid with every capability dropped.
+
+**Always bounded.** The two hand-rolled versions this replaces disagreed on
+exactly that: one gave up after 300s with a message, the other looped on `until
+nc -z` forever, so a database that never came up left the pod in Init with
+nothing to read — on `busybox:latest`, a different image every day. A bound
+shorter than the interval is refused rather than silently checked once.
+
+---
 
 ### `common.rbac`
 

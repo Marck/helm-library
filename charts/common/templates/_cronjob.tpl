@@ -68,9 +68,10 @@ spec:
                  preparing a mounted volume the Job cannot prepare itself, e.g. an
                  NFS share whose directory must be chowned to the unprivileged uid
                  the Job runs as. */}}
-          {{- with $config.initContainers }}
+          {{- $inits := include "common.initContainers" (dict "Root" $root "Config" $config) }}
+          {{- if trim $inits }}
           initContainers:
-            {{- toYaml . | nindent 12 }}
+          {{- $inits | trim | nindent 10 }}
           {{- end }}
           {{- if $config.containers }}
           containers:

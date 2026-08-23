@@ -7,3 +7,4 @@ tests/**/Chart.lock
 
 # local worktrees used while developing this library
 .git-worktrees/
+charts/*/Chart.lock

@@ -46,7 +46,7 @@ probes:
     failureThreshold: 3
 ```
 
-**Example (Vikunja):**
+**Example (an app with a `/health` endpoint):**
 ```yaml
 probes:
   liveness:
@@ -187,7 +187,7 @@ probes:
 ## Complete Example with Multiple Probe Types
 
 ```yaml
-vikunja:
+myapp:
   service:
     port: 3456
     portName: http

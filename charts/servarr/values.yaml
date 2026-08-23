@@ -1,0 +1,159 @@
+# ── Per-app identity ─────────────────────────────────────────────────────────
+# The only block an app chart MUST fill in. Everything derived from it — resource
+# names, the NFS path, the hostname, PUID/PGID, probe ports, the TLS secret — is
+# computed in _helpers.tpl, so a new Servarr app is this block plus an image.
+app:
+  # name: sonarr           # release/resource name, NFS directory, hostname
+  # uid: 24                # unique per app for NFS squash isolation (UID-MAPPING.md)
+  # port: 8989             # the app's HTTP port
+  # title: Sonarr          # shown in gatus; defaults to a capitalised name
+  gid: 100                 # the shared NAS group
+  domain: mastcloud.nl
+  nfsServer: 192.168.2.20
+  configPath: /volume1/container_configs   # <configPath>/<name> is this app's dir
+  mediaPath: /volume1/media
+  gatusGroup: media
+
+# Whether this app mounts the shared media tree. Prowlarr does not — it only
+# talks to indexers, and mounting a 1Ti RWM share it never reads is one more
+# thing that can fail on start.
+media:
+  enabled: true
+  mountPath: /media
+  size: 1Ti
+
+# image.repository/tag are per-app; the rest is shared.
+image:
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+revisionHistoryLimit: 5
+# Single writer on the RWO /config (SQLite) — recreate before starting anew.
+strategy: Recreate
+
+# linuxserver images start as root and drop to PUID/PGID, so the namespace runs
+# at the `baseline` Pod Security level, and the container context stays minimal.
+securityContext:
+  allowPrivilegeEscalation: false
+
+env:
+  TZ: Europe/Amsterdam
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "true"
+    # forward-auth: Servarr has no OIDC, so the human-facing UI is gated behind
+    # authentik SSO at the edge. Homarr, Bazarr, Prowlarr and Ombi reach these
+    # apps over the in-cluster Service with an API key, NOT this ingress, so the
+    # wall does not break those integrations.
+    traefik.ingress.kubernetes.io/router.middlewares: |
+      traefik-extensions-https-redirect@kubernetescrd, traefik-extensions-latency-check@kubernetescrd, traefik-extensions-forward-auth@kubernetescrd
+    gatus.home-operations.com/enabled: "true"
+  tls: true
+
+# ── Probes: `/`, never `/ping` ───────────────────────────────────────────────
+# The Servarr /ping handler queries the main SQLite DB. While /config lives on
+# NFS, every checkpoint/fsync stall blocks it for >10s, while `/` is served from
+# the in-memory static file cache and never touches the DB. Measured in an
+# interleaved loop inside the radarr pod while idle: ping=FAIL 10002ms next to
+# root=ok 3ms. Over 900 paired samples /ping failed 6 times and / zero; the worst
+# SURVIVING /ping calls were 8241ms and 7586ms against a 10s timeout (worst /
+# call: 571ms) — riding the edge constantly, which is why bumping the timeout
+# alone did not fix lidarr. Cluster-wide over 5.5 days sonarr logged 4444
+# "Readiness probe failed" events and radarr 4372, both on /ping, while prowlarr
+# and bazarr (which probe /) logged exactly zero. Each burst of 6 dropped the pod
+# out of the Service endpoints, so API clients saw connection errors from a
+# perfectly healthy app.
+#
+# `/` answers 302 (redirect to the login page) — kubelet counts 2xx AND 3xx as
+# success, so this works both before and after the External-auth switch.
+#
+# Restarting does not fix a stalled NFS /config — it makes things worse. The kill
+# lands while the app is blocked in SQLite I/O, so it never handles the SIGTERM;
+# s6 gives up and starts a second copy while the first still holds the port.
+# Radarr was observed with two live processes (one orphaned to PID 1 for 54
+# minutes) and "address already in use" in its log, both contending for the same
+# DB. Liveness is therefore deliberately slack: 10 minutes of sustained failure,
+# not 3, so a transient hiccup rides out while a genuinely wedged listener still
+# gets recycled.
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    # Generous even for a static route: the whole Kestrel request pipeline can
+    # queue behind a stalled DB write, so keep the ceiling above the ~12-25s
+    # stalls observed on this NFS share.
+    timeoutSeconds: 25
+    failureThreshold: 10
+  readiness:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 25
+    failureThreshold: 6
+
+# ── Config volume ────────────────────────────────────────────────────────────
+# NFS by default (SQLite DB, settings, API key). radarr overrides this with a
+# node-local volume: WAL cannot work over NFS, and its queries went from 51-90s
+# to 0.076s after the move. The others are still on NFS — see the repo's notes.
+config:
+  size: 2Gi
+  mountPath: /config
+  # nolock keeps SQLite's file locking in the client kernel instead of sending
+  # every lock over NLM to the NAS. Safe here and only here: RWO + Recreate means
+  # exactly one pod mounts this at a time, and local locks still serialise
+  # correctly between processes inside that pod. Do NOT copy this to the RWM
+  # media volume — with several writers it invites corruption. Servarr hardcodes
+  # SQLite to WAL and exposes no override, so cutting lock latency is the lever
+  # available while /config stays on NFS.
+  mountOptions:
+    - nolock
+
+# ── authentik SSO: hand authentication to the proxy ──────────────────────────
+# These apps ship with <AuthenticationMethod>Forms</AuthenticationMethod>, so a
+# user who had already signed in to authentik at the edge was met by a SECOND,
+# separate login with its own local account. `External` is the supported "my
+# reverse proxy already authenticated this request" mode, so authentik becomes
+# the single identity provider for the UI.
+#
+# This is only safe because reaching the pod at all requires passing the
+# forward-auth middleware: the namespace is default-deny on ingress and the app
+# chart's NetworkPolicies admit exactly Traefik and the named integrations. Never
+# expose the app port by any route that skips traefik-extensions-forward-auth.
+# The /api routes are unaffected either way — they authenticate on X-Api-Key.
+#
+# The file is rewritten on EVERY start, so this chart is the source of truth for
+# the auth mode — changing it in the app's settings page will not survive a
+# restart.
+externalAuth:
+  enabled: true
+  # Pinned here rather than taking the library default, so Renovate keeps it
+  # current with the repo's other busybox pins.
+  image: busybox:1.38
+
+# `helm test` smoke check. /ping is fine HERE — it is a one-off manual check, not
+# the kubelet probe that must never queue behind SQLite (see `probes` above).
+test:
+  path: /ping
+
+nodeSelector:
+  node-role.kubernetes.io/worker: 'worker'
+
+tolerations: []
+affinity: {}
+
+# ── SSO policy (common.sso.validate + the repo's CI gate) ───────────────────
+sso:
+  enforce: true
+  mode: forward-auth

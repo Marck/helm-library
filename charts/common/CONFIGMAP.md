@@ -108,7 +108,7 @@ No breaking changes - the old format continues to work as before.
 ```yaml
 configmap:
   enabled: true
-  name: vikunja-api-config
+  name: myapp-api-config
   data:
     config.yml: |
       database:
