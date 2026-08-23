@@ -94,7 +94,7 @@ Key values fields under `Config`:
 | `probes.liveness/readiness/startup` | See [PROBES.md](PROBES.md) |
 | `volumeMounts` | List of volume mounts (raw YAML, supports `tpl`) |
 | `volumes` | List of volumes (raw YAML, supports `tpl`) |
-| `initContainers` | List of init containers (raw YAML) |
+| `initContainers` | List of init containers (raw YAML). Also honoured by `common.cronjob` — e.g. chowning a mounted NFS directory to the unprivileged uid the Job runs as |
 | `additionalContainers` | List of extra sidecar containers appended to the pod (raw YAML) |
 | `imagePullSecrets` | List of image pull secrets (e.g. for private registries) |
 | `securityContext` | Container-level security context |
