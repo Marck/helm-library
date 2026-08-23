@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   common:
   - apiVersion: v2
+    created: "2026-08-23T13:45:02.022716454Z"
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 2100b9e4482443322e3ff49814b7903c3e6970f5309b4b40e4f743b42d506d29
+    name: common
+    type: library
+    urls:
+    - common-0.8.0.tgz
+    version: 0.8.0
+  - apiVersion: v2
     created: "2026-08-23T10:15:17.260441807Z"
     description: Library chart providing reusable PV/PVC templates with NFS support
       and nodeSelector configuration
@@ -231,4 +241,19 @@ entries:
     urls:
     - https://Marck.github.io/helm-library/common-0.3.0.tgz
     version: 0.3.0
-generated: "2026-08-23T10:15:17.260614045Z"
+  servarr:
+  - apiVersion: v2
+    created: "2026-08-23T13:45:02.131571721Z"
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.8.0
+    description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one
+      implementation of the shape all four had a copy of
+    digest: e0df4a2449c304875fcd945ed2473ed590fcc1ffb8007b39081fe12688d1e192
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-08-23T13:45:02.131733966Z"
