@@ -93,6 +93,24 @@
        "image" (dict "repository" "busybox" "tag" "1.36")
        "command" (list "true"))) }}
 ---
+{{- /* common 0.7.3: initContainers on common.cronjob — a Job whose mounted NFS
+       directory has to be chowned to the unprivileged uid the Job runs as before
+       it can write there. Mirrors the sealed-secrets key backup. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "init-cron"
+     "Config" (dict
+       "schedule" "0 3 * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true")
+       "podSecurityContext" (dict "runAsNonRoot" true "runAsUser" 65534)
+       "initContainers" (list (dict
+         "name" "ensure-ownership"
+         "image" "busybox:1.36"
+         "command" (list "sh" "-c" "chown 65534:65534 /backup")
+         "securityContext" (dict "runAsUser" 0 "runAsNonRoot" false)
+         "volumeMounts" (list (dict "name" "backup" "mountPath" "/backup"))))
+       "volumeMounts" (list (dict "name" "backup" "mountPath" "/backup"))
+       "volumes" (list (dict "name" "backup" "emptyDir" dict)))) }}
+---
 {{- /* common 0.6.0: common.daemonset — a per-node agent (hostNetwork, hostPort,
        control-plane tolerations, an empty env value, and an explicitly-empty
        nodeSelector that must CLEAR the inherited default rather than fall back to
