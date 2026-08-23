@@ -64,6 +64,14 @@ spec:
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- /* Init containers run before the job's own container: the usual use is
+                 preparing a mounted volume the Job cannot prepare itself, e.g. an
+                 NFS share whose directory must be chowned to the unprivileged uid
+                 the Job runs as. */}}
+          {{- with $config.initContainers }}
+          initContainers:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if $config.containers }}
           containers:
             {{- toYaml $config.containers | nindent 12 }}
