@@ -263,3 +263,23 @@
        "ports" (list
          (dict "name" "webui" "port" 11443 "targetPort" 443 "nodePort" 31443)
          (dict "name" "inform" "port" 8080))))) }}
+---
+{{- /* common 0.9.0: dnsConfig on common.cronjob and common.deployment. An
+       alert-sending workload must still reach its notification host when
+       in-cluster DNS is degraded, so it appends a public resolver AFTER the
+       cluster one. Left on the default ClusterFirst policy on purpose: the
+       entries are then additive, and cluster names keep resolving. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "dns-fallback-cron"
+     "Config" (dict
+       "schedule" "*/2 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "dnsConfig" (dict "nameservers" (list "1.1.1.1" "9.9.9.9")))) }}
+---
+{{ include "common.deployment" (dict "Root" . "Component" "dns-fallback-app"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "dnsPolicy" "None"
+       "dnsConfig" (dict
+         "nameservers" (list "1.1.1.1")
+         "searches" (list "svc.cluster.local")
+         "options" (list (dict "name" "ndots" "value" "2"))))) }}

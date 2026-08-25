@@ -60,6 +60,13 @@ spec:
       {{- if or $config.dnsPolicy $config.hostNetwork }}
       dnsPolicy: {{ $config.dnsPolicy | default "ClusterFirstWithHostNet" }}
       {{- end }}
+      {{- /* Extra resolver settings. With the default ClusterFirst policy these
+             nameservers are APPENDED after the cluster resolver, so cluster
+             names keep resolving and the entries act purely as a fallback. */}}
+      {{- with $config.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- /* Static /etc/hosts entries — e.g. pin an in-cluster hostname to a
            Service ClusterIP to avoid intermittent hairpin NAT on an OIDC
            back-channel. */}}
