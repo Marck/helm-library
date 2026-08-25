@@ -2,7 +2,7 @@ apiVersion: v2
 name: servarr
 description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one implementation of the shape all four had a copy of
 type: application
-version: 0.1.0
+version: 0.2.0
 
 # Why this chart exists
 # ---------------------
@@ -21,5 +21,5 @@ version: 0.1.0
 # needs common 0.8.0, which is published by the same run.
 dependencies:
   - name: common
-    version: 0.8.0
+    version: 0.9.0
     repository: "file://../common"
