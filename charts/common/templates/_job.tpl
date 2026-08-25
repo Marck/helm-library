@@ -39,6 +39,13 @@ spec:
       automountServiceAccountToken: {{ $root.Values.automountServiceAccountToken }}
       {{- end }}
       restartPolicy: {{ $config.restartPolicy | default "OnFailure" }}
+      {{- /* A pod that must survive node pressure — a per-node DNS cache, a
+             metrics agent — needs a priorityClassName, or the kubelet evicts it
+             like any other pod and everything depending on it fails while the
+             cause looks unrelated. */}}
+      {{- with (default $root.Values.priorityClassName $config.priorityClassName) }}
+      priorityClassName: {{ . }}
+      {{- end }}
       {{- with (default $root.Values.podSecurityContext $config.podSecurityContext) }}
       securityContext:
         {{- toYaml . | nindent 8 }}

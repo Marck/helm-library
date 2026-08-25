@@ -283,3 +283,21 @@
          "nameservers" (list "1.1.1.1")
          "searches" (list "svc.cluster.local")
          "options" (list (dict "name" "ndots" "value" "2"))))) }}
+---
+{{- /* common 0.10.0: priorityClassName. A per-node DNS cache is the case that
+       forced it — under node pressure the kubelet evicts an ordinary pod, and
+       every pod pointed at that cache loses DNS while the cause looks like
+       anything but eviction. Covered on the DaemonSet and the CronJob because
+       those two write the field at different nesting depths, which is exactly
+       where an indentation mistake hides. */}}
+{{ include "common.daemonset" (dict "Root" . "Component" "priority-agent"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "priorityClassName" "system-node-critical")) }}
+---
+{{ include "common.cronjob" (dict "Root" . "Component" "priority-cron"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "priorityClassName" "system-cluster-critical")) }}
