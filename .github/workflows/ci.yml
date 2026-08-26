@@ -55,3 +55,10 @@ jobs:
       # public Ingress), and a passing render cannot assert that.
       - name: servarr chart tests
         run: tests/servarr.sh
+
+      # priorityClassName decides whether a pod survives node pressure, and its
+      # failure is invisible at the failure site: evict a per-node DNS cache and
+      # what you see is applications timing out. The test asserts the field
+      # lands at pod-spec level in both nesting depths, which a render cannot.
+      - name: priorityClassName tests
+        run: tests/priority-class.sh

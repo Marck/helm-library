@@ -54,6 +54,13 @@ spec:
       {{- else if hasKey $root.Values "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ $root.Values.automountServiceAccountToken }}
       {{- end }}
+      {{- /* A pod that must survive node pressure — a per-node DNS cache, a
+             metrics agent — needs a priorityClassName, or the kubelet evicts it
+             like any other pod and everything depending on it fails while the
+             cause looks unrelated. */}}
+      {{- with (default $root.Values.priorityClassName $config.priorityClassName) }}
+      priorityClassName: {{ . }}
+      {{- end }}
       {{- if $config.hostNetwork }}
       hostNetwork: {{ $config.hostNetwork }}
       {{- end }}
