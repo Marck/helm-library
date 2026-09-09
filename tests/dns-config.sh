@@ -65,6 +65,49 @@ else
   ok "cronjob keeps default ClusterFirst (fallback is additive)"
 fi
 
+# --- job: the workload this matters most on -------------------------------
+# A Job runs once. A Job that cannot resolve its notification host fails and
+# tells nobody, which is the exact shape of the outage this feature exists for.
+# common.job dropped both fields until 0.11.0 despite the 0.9.0 release notes
+# claiming "every workload", so a chart could declare a fallback, render
+# cleanly, and still have none.
+JOB="$(doc common-test-chart-test-dns-fallback-job)"
+
+if printf '%s' "$JOB" | grep -q "dnsConfig:"; then
+  ok "job renders dnsConfig"
+else
+  bad "job renders dnsConfig"
+fi
+
+if printf '%s' "$JOB" | grep -q -- "- 1.1.1.1" && printf '%s' "$JOB" | grep -q -- "- 9.9.9.9"; then
+  ok "job carries both fallback nameservers"
+else
+  bad "job carries both fallback nameservers"
+fi
+
+if printf '%s' "$JOB" | grep -q "dnsPolicy:"; then
+  bad "job must NOT emit dnsPolicy when only dnsConfig is set (would drop cluster DNS)"
+else
+  ok "job keeps default ClusterFirst (fallback is additive)"
+fi
+
+# --- backupCronJob: forwards, rather than silently swallowing --------------
+# It builds its own Config dict and delegates to common.cronjob, so supporting
+# the field downstream is not enough; it has to pass it along.
+BACKUP="$(doc common-test-chart-test-dns-fallback-backup)"
+
+if printf '%s' "$BACKUP" | grep -q "dnsConfig:"; then
+  ok "backupCronJob forwards dnsConfig to common.cronjob"
+else
+  bad "backupCronJob forwards dnsConfig to common.cronjob"
+fi
+
+if printf '%s' "$BACKUP" | grep -q "dnsPolicy:"; then
+  bad "backupCronJob must NOT emit dnsPolicy when only dnsConfig is set"
+else
+  ok "backupCronJob keeps default ClusterFirst (fallback is additive)"
+fi
+
 # --- deployment: explicit None carries a full resolver config ---------------
 DEP="$(doc common-test-chart-test-dns-fallback-app)"
 

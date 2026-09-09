@@ -22,6 +22,12 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
+      # Three of the test scripts call `uv run` with no fallback. Nothing here
+      # installed it; CI stayed green only while the runner image happened to
+      # ship uv, and went red the moment it stopped. Pin it rather than depend
+      # on the image.
+      - uses: astral-sh/setup-uv@v10.0.1
+
       - name: Helm lint --strict
         run: |
           helm lint --strict charts/common
@@ -49,6 +55,12 @@ jobs:
       # edit) as for what they render, and a passing render cannot assert that.
       - name: Init-container helper tests
         run: tests/init-containers.sh
+
+      # This one was never wired in, which is exactly how 0.9.0 shipped as
+      # "dnsConfig on every workload" while common.job and common.backupCronJob
+      # silently rendered without it. A test that does not run guards nothing.
+      - name: dnsConfig fallback tests
+        run: tests/dns-config.sh
 
       # The servarr chart's own tests: its auth edit is security-relevant (an
       # unverified pass starts a Servarr app with no authentication behind a

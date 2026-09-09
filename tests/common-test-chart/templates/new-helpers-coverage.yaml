@@ -275,6 +275,26 @@
        "image" (dict "repository" "busybox" "tag" "1.36")
        "dnsConfig" (dict "nameservers" (list "1.1.1.1" "9.9.9.9")))) }}
 ---
+{{- /* Same fallback, on a one-shot Job. This is the workload where it matters
+       MOST and the one common.job silently dropped until 0.11.0: a Job runs
+       once, so a Job that cannot resolve its notification host fails and tells
+       nobody. */}}
+{{ include "common.job" (dict "Root" . "Component" "dns-fallback-job"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "dnsConfig" (dict "nameservers" (list "1.1.1.1" "9.9.9.9")))) }}
+---
+{{- /* backupCronJob builds its own Config dict and hands it to common.cronjob,
+       so it has to FORWARD these explicitly; before 0.11.0 they were dropped on
+       the way through even though the underlying cronjob supported them. */}}
+{{ include "common.backupCronJob" (dict
+     "Root" . "Component" "dns-fallback-backup"
+     "Script" "dns-fallback-backup-script"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "dnsConfig" (dict "nameservers" (list "1.1.1.1" "9.9.9.9")))) }}
+---
 {{ include "common.deployment" (dict "Root" . "Component" "dns-fallback-app"
      "Config" (dict
        "image" (dict "repository" "busybox" "tag" "1.36")

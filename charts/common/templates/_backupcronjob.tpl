@@ -89,5 +89,10 @@ every CronJob carries them.
 {{- /* Only pass `suspend` when the chart actually sets it, so the rendered
        CronJob does not carry an explicit null. */ -}}
 {{- if hasKey $b "suspend" }}{{- $_ := set $config "suspend" $b.suspend }}{{- end }}
+{{- /* Forward the resolver overrides. common.cronjob renders them; without
+       this they were silently dropped on the way through, so a backup that
+       alerts on failure had no fallback nameserver no matter what it declared. */ -}}
+{{- if $b.dnsPolicy }}{{- $_ := set $config "dnsPolicy" $b.dnsPolicy }}{{- end }}
+{{- if $b.dnsConfig }}{{- $_ := set $config "dnsConfig" $b.dnsConfig }}{{- end }}
 {{ include "common.cronjob" (dict "Root" $root "Component" $comp "Config" $config) }}
 {{- end -}}

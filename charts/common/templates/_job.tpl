@@ -46,6 +46,20 @@ spec:
       {{- with (default $root.Values.priorityClassName $config.priorityClassName) }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- /* Resolver overrides. dnsConfig with the default ClusterFirst policy
+             APPENDS nameservers after the cluster resolver, so cluster names
+             keep working and the extra entries act purely as a fallback --
+             that is how an alert-sending Job still reaches its notification
+             host when in-cluster DNS is degraded. A Job is the workload where
+             this matters MOST: it runs once, and a Job that cannot resolve its
+             notification host fails silently and tells nobody. */}}
+      {{- with $config.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with $config.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with (default $root.Values.podSecurityContext $config.podSecurityContext) }}
       securityContext:
         {{- toYaml . | nindent 8 }}
