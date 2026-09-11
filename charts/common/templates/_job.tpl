@@ -15,7 +15,7 @@ metadata:
     {{- toYaml $config.annotations | nindent 4 }}
   {{- end }}
 spec:
-  backoffLimit: {{ $config.backoffLimit | default 3 }}
+  backoffLimit: {{ include "common.intValue" (dict "Config" $config "Key" "backoffLimit" "Default" 3) }}
   {{- if $config.activeDeadlineSeconds }}
   activeDeadlineSeconds: {{ $config.activeDeadlineSeconds }}
   {{- end }}
