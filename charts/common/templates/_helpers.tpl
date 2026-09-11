@@ -124,3 +124,23 @@ nodeSelector:
 {{- define "common.podSpecCommon" -}}
 replicaCount: {{ .Values.replicaCount }}
 {{- end }}
+
+{{- /*
+  common.intValue — read an integer field off a Config dict with a fallback.
+
+  `$config.field | default N` is wrong for any integer where 0 is a meaningful
+  value: Helm's `default` treats 0 as empty, so `backoffLimit: 0` ("never
+  retry") silently renders the default instead. This returns the configured
+  value whenever the key is present and not null, and the fallback otherwise.
+
+  Usage: {{ include "common.intValue" (dict "Config" $config "Key" "backoffLimit" "Default" 3) }}
+*/}}
+{{- define "common.intValue" -}}
+{{- $config := .Config | default dict -}}
+{{- $value := index $config .Key -}}
+{{- if and (hasKey $config .Key) (not (kindIs "invalid" $value)) -}}
+{{- $value -}}
+{{- else -}}
+{{- .Default -}}
+{{- end -}}
+{{- end -}}

@@ -321,3 +321,22 @@
        "schedule" "*/5 * * * *"
        "image" (dict "repository" "busybox" "tag" "1.36")
        "priorityClassName" "system-cluster-critical")) }}
+---
+{{- /* common 0.12.0: an explicit 0 on an integer field. `| default N` treats 0
+       as empty, so a Job asking for "never retry" (backoffLimit: 0) used to get
+       3 retries, and a fail-fast hook re-ran its side effects three times. The
+       Job below asks for 0 on both integers; the CronJob asks for 0 history so
+       the pair covers both nesting depths. */}}
+{{ include "common.job" (dict "Root" . "Component" "zero-int-job"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "command" (list "true")
+       "backoffLimit" 0)) }}
+---
+{{ include "common.cronjob" (dict "Root" . "Component" "zero-int-cron"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "backoffLimit" 0
+       "successfulJobsHistoryLimit" 0
+       "failedJobsHistoryLimit" 0)) }}
