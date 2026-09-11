@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   common:
   - apiVersion: v2
+    created: "2026-09-11T09:11:52.845170373Z"
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 98615aef773f1dacdc1871861255ec2bff66763c4c6c0572119255e2117ec4f1
+    name: common
+    type: library
+    urls:
+    - common-0.12.0.tgz
+    version: 0.12.0
+  - apiVersion: v2
     created: "2026-09-09T21:11:11.924483061Z"
     description: Library chart providing reusable PV/PVC templates with NFS support
       and nodeSelector configuration
@@ -273,6 +283,20 @@ entries:
     version: 0.3.0
   servarr:
   - apiVersion: v2
+    created: "2026-09-11T09:11:53.009265029Z"
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.12.0
+    description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one
+      implementation of the shape all four had a copy of
+    digest: 307baa71a3b8425eb4900ee2e77d7e135293f3bfab83657aca185e1381e0c8f6
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
     created: "2026-09-09T21:11:12.135212863Z"
     dependencies:
     - name: common
@@ -314,4 +338,4 @@ entries:
     urls:
     - servarr-0.1.0.tgz
     version: 0.1.0
-generated: "2026-09-09T21:11:12.135484995Z"
+generated: "2026-09-11T09:11:53.009472284Z"
