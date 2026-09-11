@@ -679,6 +679,43 @@ Parameters: `Root`, `Component`, `Config`
 
 Generates pod annotations with checksums for configMaps and sealedSecrets, so pods restart on config changes. Automatically included by `common.deployment`.
 
+### `common.job`
+
+Parameters: `Root`, `Component` (default `job`), `Config`
+
+Renders a one-off Job. Everything comes out of the single `Config` dict, including the
+object's own annotations, which go in `Config.annotations`. There is no separate
+`Annotations` parameter; a dict passed under any other key is ignored without an error.
+That matters for ArgoCD hooks: a Job that loses its hook annotations is applied as an
+ordinary resource, and the next change to the pod spec fails the sync with
+`spec.template: field is immutable`, because a Job template cannot be patched.
+
+```yaml
+{{ include "common.job" (dict "Root" . "Component" "hook" "Config" (merge
+     (dict "annotations" (dict
+       "argocd.argoproj.io/hook"               "PostSync"
+       "argocd.argoproj.io/hook-delete-policy" "BeforeHookCreation"))
+     .Values)) }}
+```
+
+Job settings (`backoffLimit`, `activeDeadlineSeconds`, `ttlSecondsAfterFinished`,
+`restartPolicy`) sit at the top level of `Config`, next to the pod fields.
+
+### `common.intValue`
+
+Parameters: `Config`, `Key`, `Default`
+
+Reads an integer field off a Config dict. Use it instead of `$config.field | default N`
+for any integer where `0` is a meaningful value: Helm's `default` treats `0` as empty, so
+`backoffLimit: 0` ("never retry") renders the default instead. Used internally by
+`common.job`, `common.cronjob`, `common.backupCronJob` (`backoffLimit`,
+`successfulJobsHistoryLimit`, `failedJobsHistoryLimit`) and by the three workload
+templates (`revisionHistoryLimit`).
+
+```
+{{ include "common.intValue" (dict "Config" $config "Key" "backoffLimit" "Default" 3) }}
+```
+
 ### `common.serviceaccount`
 
 Parameters: `Root`, `Config` (optional), `Name` (optional)

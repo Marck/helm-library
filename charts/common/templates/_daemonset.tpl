@@ -21,7 +21,7 @@ metadata:
   labels:
 {{- include "common.labels" $root | nindent 4 }}
 spec:
-  revisionHistoryLimit: {{ $config.revisionHistoryLimit | default 3 }}
+  revisionHistoryLimit: {{ include "common.intValue" (dict "Config" $config "Key" "revisionHistoryLimit" "Default" 3) }}
   updateStrategy:
     type: {{ $config.updateStrategy | default "RollingUpdate" }}
     {{- if eq ($config.updateStrategy | default "RollingUpdate") "RollingUpdate" }}

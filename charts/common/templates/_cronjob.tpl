@@ -20,11 +20,11 @@ spec:
   suspend: {{ $config.suspend }}
   {{- end }}
   concurrencyPolicy: {{ $config.concurrencyPolicy | default "Forbid" }}
-  successfulJobsHistoryLimit: {{ $config.successfulJobsHistoryLimit | default 3 }}
-  failedJobsHistoryLimit: {{ $config.failedJobsHistoryLimit | default 1 }}
+  successfulJobsHistoryLimit: {{ include "common.intValue" (dict "Config" $config "Key" "successfulJobsHistoryLimit" "Default" 3) }}
+  failedJobsHistoryLimit: {{ include "common.intValue" (dict "Config" $config "Key" "failedJobsHistoryLimit" "Default" 1) }}
   jobTemplate:
     spec:
-      backoffLimit: {{ $config.backoffLimit | default 3 }}
+      backoffLimit: {{ include "common.intValue" (dict "Config" $config "Key" "backoffLimit" "Default" 3) }}
       {{- if $config.activeDeadlineSeconds }}
       activeDeadlineSeconds: {{ $config.activeDeadlineSeconds }}
       {{- end }}

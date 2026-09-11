@@ -74,3 +74,9 @@ jobs:
       # lands at pod-spec level in both nesting depths, which a render cannot.
       - name: priorityClassName tests
         run: tests/priority-class.sh
+
+      # Helm's `default` treats 0 as empty, so an explicit `backoffLimit: 0`
+      # ("never retry") used to render as 3. A render passes either way; only
+      # reading the field back out of the document catches it.
+      - name: Explicit-zero integer field tests
+        run: tests/zero-int-fields.sh
