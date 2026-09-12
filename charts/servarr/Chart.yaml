@@ -15,11 +15,12 @@ version: 0.2.2
 #
 # Everything here is derived from one `app:` block (name, uid, port), so adding
 # the fifth Servarr app is a dozen lines rather than another 300-line copy.
-# A RELATIVE dependency, deliberately: the release workflow vendors common into
-# this chart before packaging, so a published servarr is self-contained. Pointing
-# at the published index instead would deadlock the first release — servarr 0.1.0
-# needs common 0.8.0, which is published by the same run.
+
 dependencies:
+  # The published index, and a version that is already IN it. Release order is
+  # one way: common is published first, then a follow-up bumps this pin. Pinning
+  # the version being published by the same run cannot resolve, which is what
+  # the old file:// pin was working around.
   - name: common
     version: 0.12.0
-    repository: "file://../common"
+    repository: "https://Marck.github.io/helm-library"

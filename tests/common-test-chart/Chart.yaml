@@ -3,7 +3,22 @@ name: common-test-chart
 description: Test chart for exercising the common library chart
 type: application
 version: 0.1.0
+
 dependencies:
+  # No repository, on purpose. An empty repository means "this chart is already
+  # in charts/", which tests/vendor-common.sh puts there from the WORKING TREE.
+  #
+  # Neither alternative is right for a test harness. The published index resolves
+  # to the LAST RELEASE, so CI would validate the previous version: a regression
+  # in the PR under review would pass, and a newly added helper would fail
+  # because the published chart does not have it yet. A file:// repository does
+  # resolve the working tree, but drags along a version constraint that has to be
+  # bumped on every release.
+  #
+  # The version is a range for the same reason: the vendored copy is whatever the
+  # tree holds, so pinning it exactly only creates a mandatory edit per release.
+  # helm lint --strict still requires the entry to exist, which is why it is here
+  # at all rather than omitted.
   - name: common
-    version: 0.12.0
-    repository: "file://../../charts/common"
+    version: ">= 0.0.0"
+    repository: ""

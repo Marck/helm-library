@@ -94,5 +94,9 @@ every CronJob carries them.
        alerts on failure had no fallback nameserver no matter what it declared. */ -}}
 {{- if $b.dnsPolicy }}{{- $_ := set $config "dnsPolicy" $b.dnsPolicy }}{{- end }}
 {{- if $b.dnsConfig }}{{- $_ := set $config "dnsConfig" $b.dnsConfig }}{{- end }}
+{{- /* Forwarded explicitly: this helper builds its own $config, so anything not
+       copied across is silently dropped rather than passed through. */}}
+{{- if $b.hostNetwork }}{{- $_ := set $config "hostNetwork" $b.hostNetwork }}{{- end }}
+{{- if $b.tolerations }}{{- $_ := set $config "tolerations" $b.tolerations }}{{- end }}
 {{ include "common.cronjob" (dict "Root" $root "Component" $comp "Config" $config) }}
 {{- end -}}

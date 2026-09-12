@@ -53,8 +53,18 @@ spec:
              host when in-cluster DNS is degraded. A Job is the workload where
              this matters MOST: it runs once, and a Job that cannot resolve its
              notification host fails silently and tells nobody. */}}
-      {{- with $config.dnsPolicy }}
-      dnsPolicy: {{ . }}
+      {{- /* hostNetwork on a batch workload: a Job that has to reach something
+             published on the node's loopback (etcd's metrics port, say) cannot do it
+             from the pod network at all. Long-running workloads have had this since
+             the beginning; batch ones silently ignored it, so the values looked
+             correct and the pod ran in the wrong namespace. */}}
+      {{- if $config.hostNetwork }}
+      hostNetwork: {{ $config.hostNetwork }}
+      {{- end }}
+      {{- /* hostNetwork implies ClusterFirstWithHostNet, or the pod keeps ClusterFirst
+             while sharing the host's netns and resolves against the wrong servers. */}}
+      {{- if or $config.dnsPolicy $config.hostNetwork }}
+      dnsPolicy: {{ $config.dnsPolicy | default "ClusterFirstWithHostNet" }}
       {{- end }}
       {{- with $config.dnsConfig }}
       dnsConfig:
@@ -67,6 +77,12 @@ spec:
       {{- with (default $root.Values.nodeSelector $config.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- /* Without tolerations a batch workload cannot be placed on a tainted node,
+             so anything that must run ON the control plane was impossible. */}}
+      {{- if or $config.tolerations $root.Values.tolerations }}
+      tolerations:
+        {{- toYaml (default $root.Values.tolerations $config.tolerations) | nindent 8 }}
       {{- end }}
       {{- with (default $root.Values.imagePullSecrets $config.imagePullSecrets) }}
       imagePullSecrets:
