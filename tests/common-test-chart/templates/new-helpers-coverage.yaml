@@ -340,3 +340,53 @@
        "backoffLimit" 0
        "successfulJobsHistoryLimit" 0
        "failedJobsHistoryLimit" 0)) }}
+---
+{{- /* common 0.13.0: hostNetwork + tolerations on the BATCH workloads. The three
+       long-running helpers have had both since the beginning; cronjob, job and
+       backupCronJob silently dropped them, so a chart could set hostNetwork:
+       true, render valid YAML, and get a pod on the pod network anyway. The case
+       that forced it: sampling etcd's latency histograms, which k3s publishes on
+       the node's loopback only and which are therefore unreachable from the pod
+       network, on a control-plane node that a batch pod could not be placed on
+       without a toleration.
+
+       hostNetwork must also flip dnsPolicy to ClusterFirstWithHostNet, or the
+       pod shares the host netns while still being told to resolve as if it were
+       on the pod network. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "hostnet-cron"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "tolerations" (list (dict "key" "node-role.kubernetes.io/control-plane" "operator" "Exists" "effect" "NoSchedule")))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "hostnet-job"
+     "Config" (dict
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "tolerations" (list (dict "key" "node-role.kubernetes.io/control-plane" "operator" "Exists" "effect" "NoSchedule")))) }}
+---
+{{ include "common.backupCronJob" (dict
+     "Root" . "Component" "hostnet-backup"
+     "Script" "hostnet-backup-script"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "tolerations" (list (dict "key" "node-role.kubernetes.io/control-plane" "operator" "Exists" "effect" "NoSchedule")))) }}
+---
+{{- /* An explicit dnsPolicy must WIN over the hostNetwork-implied default, or a
+       workload that deliberately wants the host's own resolver cannot say so. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "hostnet-cron-explicit-dns"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36")
+       "hostNetwork" true
+       "dnsPolicy" "Default")) }}
+---
+{{- /* And a batch workload that asks for NOTHING must stay byte-identical: no
+       hostNetwork key, and no dnsPolicy appearing out of nowhere. */}}
+{{ include "common.cronjob" (dict "Root" . "Component" "hostnet-cron-untouched"
+     "Config" (dict
+       "schedule" "*/5 * * * *"
+       "image" (dict "repository" "busybox" "tag" "1.36"))) }}

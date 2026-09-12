@@ -12,7 +12,7 @@ CHART="$DIR/common-test-chart"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-helm dependency update "$CHART" >/dev/null 2>&1
+"$DIR/vendor-common.sh" "$CHART"
 helm template test "$CHART" -f "$CHART/values.yaml" > "$WORK/render.yaml"
 
 if python3 -c 'import yaml' 2>/dev/null; then PYRUN="python3"; else PYRUN="uv run --with pyyaml python3"; fi
