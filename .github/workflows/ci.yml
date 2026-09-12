@@ -39,7 +39,10 @@ jobs:
 
       - name: Template test chart against local common
         run: |
-          helm dependency update tests/common-test-chart
+          # Vendor the WORKING TREE, do not resolve a dependency. Resolving would
+          # pull the last published common, so CI would validate the previous
+          # release instead of the change under review.
+          tests/vendor-common.sh
           helm lint --strict tests/common-test-chart
           helm template test tests/common-test-chart -f tests/common-test-chart/values.yaml
           helm template test tests/common-test-chart -f tests/common-test-chart/values-multi-pv.yaml
@@ -80,3 +83,9 @@ jobs:
       # reading the field back out of the document catches it.
       - name: Explicit-zero integer field tests
         run: tests/zero-int-fields.sh
+
+      # The long-running helpers have had hostNetwork and tolerations since the
+      # beginning; the batch ones silently dropped them, so a chart could set
+      # hostNetwork: true, render valid YAML, and still land on the pod network.
+      - name: hostNetwork + tolerations on batch workloads
+        run: tests/host-network-batch.sh
