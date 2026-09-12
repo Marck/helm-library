@@ -30,11 +30,24 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+      # servarr depends on common through the published index. `helm dependency
+      # update` copes with a repository that is not registered ("unmanaged"), but
+      # chart-releaser does not: it fails with
+      #   Error: no repository definition for https://Marck.github.io/helm-library
+      # even though the dependency is already vendored into charts/. Registering
+      # the repo first is what the packaging step needs.
+      #
+      # Pointing at its OWN index is safe because release order is one way: a
+      # consumer only ever pins a version that is already published, never the one
+      # this run is about to write.
+      - name: Register the published chart repository
+        run: |
+          helm repo add helm-library https://Marck.github.io/helm-library
+          helm repo update
+
       # chart-releaser runs `helm package`, which refuses a chart whose
-      # dependencies are not already in charts/. servarr depends on common by
-      # relative path, so resolve it here — that also makes the published servarr
-      # self-contained rather than needing an index that this run has not written
-      # yet.
+      # dependencies are not already in charts/, so resolve them here. It also
+      # makes the published servarr self-contained.
       - name: Vendor chart dependencies
         run: |
           for chart in charts/*/; do
