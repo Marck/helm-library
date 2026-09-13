@@ -50,11 +50,28 @@ spec:
 {{- end }}
 {{- if $ingress.tls }}
   tls:
-    - secretName: {{ $ingress.tlsSecretName | default (printf "%s-cert" (include "common.fullname" $root)) }}
-      hosts:
+    - hosts:
         {{- range $host := (required "ingress.hosts is required!" $ingress.hosts) }}
         - {{ printf "%s" (required "$host.host is required" $host.host) }}
         {{- end }}
+      {{- /*
+        secretName is emitted ONLY when the chart asks for one. It used to default
+        to "<fullname>-cert", which named a Secret that in practice did not exist:
+        once a cluster serves one wildcard certificate through Traefik's default
+        TLSStore, no app keeps a per-host Secret. The Ingress still advertised the
+        missing name, so Traefik logged
+          Error configuring TLS: secret <ns>/<name>-tls does not exist
+        for EVERY such ingress on every config reload. Serving was unaffected (the
+        default certificate takes over), which is what let 30 of them accumulate
+        unnoticed, and that volume of ERROR is exactly what hides a real one.
+        A tls block with hosts and no secretName is the documented way to say
+        "serve TLS with the default certificate"; verified against a live Traefik,
+        which served the wildcard with a chain that validates (ssl_verify_result 0).
+        A chart that genuinely owns a certificate still sets tlsSecretName.
+      */}}
+      {{- with $ingress.tlsSecretName }}
+      secretName: {{ . }}
+      {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

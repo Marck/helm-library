@@ -89,3 +89,9 @@ jobs:
       # hostNetwork: true, render valid YAML, and still land on the pod network.
       - name: hostNetwork + tolerations on batch workloads
         run: tests/host-network-batch.sh
+
+      # An Ingress that names a TLS Secret which does not exist renders fine and
+      # serves fine (Traefik's default certificate takes over), then logs an ERROR
+      # per ingress on every config reload. Nothing fails, so it accumulates.
+      - name: Ingress TLS secretName is opt-in
+        run: tests/ingress-tls.sh
