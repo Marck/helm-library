@@ -80,7 +80,13 @@ for want in ("sonarr-config-pv", "sonarr-config-pvc", "sonarr-media-pv",
     check(want in names, f"derived resource {want}")
 ing = docs[("Ingress", "sonarr-ingress")]
 check(ing["spec"]["rules"][0]["host"] == "sonarr.mastcloud.nl", "the hostname is derived")
-check(ing["spec"]["tls"][0]["secretName"] == "sonarr-tls", "the TLS secret is derived")
+# No per-app TLS Secret is derived any more. The cluster serves one wildcard
+# certificate through Traefik's default TLSStore, so "<name>-tls" named a Secret
+# nobody creates and Traefik logged an ERROR for every Servarr ingress on each
+# config reload. The tls block must still exist WITH its hosts, or the router
+# loses TLS altogether, which is the part worth asserting.
+check("secretName" not in ing["spec"]["tls"][0], "no phantom TLS secret is derived")
+check(bool(ing["spec"]["tls"][0].get("hosts")), "the tls block keeps its hosts")
 check("forward-auth" in ing["metadata"]["annotations"]["traefik.ingress.kubernetes.io/router.middlewares"],
       "the UI is behind forward-auth by default")
 pv = docs[("PersistentVolume", "sonarr-config-pv")]
