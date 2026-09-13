@@ -2,7 +2,7 @@ apiVersion: v2
 name: servarr
 description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one implementation of the shape all four had a copy of
 type: application
-version: 0.2.2
+version: 0.3.0
 
 # Why this chart exists
 # ---------------------
@@ -22,5 +22,5 @@ dependencies:
   # the version being published by the same run cannot resolve, which is what
   # the old file:// pin was working around.
   - name: common
-    version: 0.12.0
+    version: 0.14.0
     repository: "https://Marck.github.io/helm-library"
