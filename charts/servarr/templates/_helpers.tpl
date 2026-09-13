@@ -7,6 +7,13 @@ PUID/PGID env, the probe ports, the gatus endpoint. An app chart that wants
 something else simply sets it — its own values are merged LAST and win, which is
 how radarr keeps its node-local /config and its extra init container.
 */ -}}
+{{- /* The ingress deliberately passes NO tlsSecretName. This cluster serves one
+       wildcard certificate through Traefik's default TLSStore, so the old
+       "<name>-tls" named a Secret nobody creates and Traefik logged
+       "Error configuring TLS: secret <ns>/<name>-tls does not exist" for every
+       Servarr ingress on every config reload. common 0.14.0 makes secretName
+       opt-in, and an app that genuinely owns a certificate can still pass
+       ingress.tlsSecretName through its own values. */ -}}
 {{- define "servarr.values" -}}
 {{- $v := .Values -}}
 {{- $app := $v.app | default dict -}}
@@ -58,7 +65,6 @@ how radarr keeps its node-local /config and its extra init container.
     "ingress" (dict
        "annotations" (dict "gatus.home-operations.com/endpoint" (printf "name: %s\ngroup: %s\nclient: { timeout: 30s }\nconditions: [\"[STATUS] < 500\"]\nalerts: [{ type: pushover }]\n" $title $app.gatusGroup))
        "hosts" (list (dict "host" $host "paths" (list (dict "path" "/" "pathType" "Prefix"))))
-       "tlsSecretName" (printf "%s-tls" $name)
        "serviceName" (printf "%s-app" $name)
        "servicePort" $port)
     "probes" (dict
