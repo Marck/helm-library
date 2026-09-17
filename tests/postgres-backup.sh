@@ -63,6 +63,16 @@ grep -q 'format=custom' "$WORK/out.yaml" \
 grep -q 'dump.part" -mtime' "$WORK/out.yaml" \
   || fail "script never prunes .part files, so failed runs accumulate forever"
 
+# The one that cost a full night of backups: a Job pod cannot reach the cluster
+# network for its first second or two, and the failure is ECONNREFUSED, so
+# pg_dump gives up instantly. Every run failed, all three attempts, until the
+# script waited.
+grep -q 'pg_isready -q' "$WORK/out.yaml" \
+  || fail "script does not wait for the database; a fresh Job pod's first connection is refused and every run fails"
+
+grep -q 'CONNECT_TIMEOUT' "$WORK/out.yaml" \
+  || fail "the wait is unbounded -- it must fail loudly rather than hang until activeDeadlineSeconds kills it"
+
 # --- the guard rails ---------------------------------------------------------
 if helm template test "$CHART" --set 'postgresBackup.image=postgres:18-alpine' >/dev/null 2>&1; then
   fail "a bare image string was accepted; it must fail with a message naming the key"
