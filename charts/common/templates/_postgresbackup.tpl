@@ -46,6 +46,15 @@ breaks if this stops running, and the repo's CronJob gate enforces that it does.
 {{- $db := $b.database | required "postgresBackup.database is required" -}}
 {{- $mount := $b.mountPath | default "/backup" -}}
 {{- $keep := $b.retentionDays | default 14 -}}
+{{- /* common.backupCronJob defaults activeDeadlineSeconds to 300, which suits
+       the sqlite jobs it was written for. A pg_dump of a real database can
+       exceed it, and the deadline does not fail the job cleanly -- it kills it
+       mid-dump, so the symptom is a backup that "sometimes fails" and gets
+       ignored. 1800 unless the chart says otherwise.
+       Set HERE, at the top: done next to the include it feeds, the {{- -}} trim
+       actions eat the newline before the `---` and weld the ConfigMap to the
+       CronJob. */ -}}
+{{- $b = merge (dict "activeDeadlineSeconds" ($b.activeDeadlineSeconds | default 1800)) $b -}}
 {{- if not $b.existingSecret -}}
 {{- fail "postgresBackup.existingSecret must name the Secret holding the database password — the password is never rendered into the CronJob." -}}
 {{- end -}}
@@ -118,19 +127,19 @@ data:
 
     REMAINING="$(find "${DEST}" -maxdepth 1 -type f -name "${DB_NAME}-*.dump" | wc -l)"
     echo "[pg-backup] ok - ${REMAINING} dump(s) retained"
-{{- /* PGPASSWORD below is a MAP, which common.cronjob renders as valueFrom, so
-       the password reaches libpq through the environment and never through
-       argv where `kubectl describe` would print it. The others are the standard
-       libpq variables, so pg_dump and psql both connect with no arguments.
-       A template comment cannot live inside the dict expression itself -- Go
-       rejects it with `unexpected "{" in operand`. */ -}}
-{{- /* common.backupCronJob defaults activeDeadlineSeconds to 300, which suits
-       the sqlite jobs it was written for. A pg_dump of a real database can
-       exceed that, and the deadline does not fail it cleanly -- it kills the job
-       mid-dump, so the symptom is a backup that "sometimes fails" and gets
-       ignored. 1800 unless the chart says otherwise; a chart with a big database
-       should raise it rather than discover this. */ -}}
-{{- $b = merge (dict "activeDeadlineSeconds" ($b.activeDeadlineSeconds | default 1800)) $b -}}
+{{/* PGPASSWORD below is a MAP, which common.cronjob renders as valueFrom, so
+     the password reaches libpq through the environment and never through argv,
+     where `kubectl describe` would print it. The rest are standard libpq
+     variables, so pg_dump and psql connect with no arguments.
+
+     Two delimiter traps, both hit while writing this:
+     - a comment cannot sit inside the dict expression below; Go rejects it
+       with `unexpected "{" in operand`;
+     - this comment must not TRIM. A trimming comment eats the newline after
+       the script's last line, the separator below lands on that line, and the
+       ConfigMap welds to the CronJob into one document that kubeconform
+       rejects with `key apiVersion already set`. */}}
+---
 {{ include "common.backupCronJob" (dict
      "Root" $root
      "Component" $comp

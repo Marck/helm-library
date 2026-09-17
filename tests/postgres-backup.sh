@@ -72,4 +72,20 @@ if helm template test "$CHART" --set 'postgresBackup.destination.claimName=null'
   fail "a missing destination.claimName was accepted; dumps would have nowhere to go"
 fi
 
+# --- the two documents must actually be SEPARATE -----------------------------
+# This is the check whose absence let a real defect ship: common.cronjob emits no
+# leading `---`, so the ConfigMap above it and the CronJob below it arrived as
+# ONE document. Every string assertion above still passed -- the text was all
+# there, just not parseable -- and kubeconform in the consuming repo was the
+# first thing to notice ("key \"apiVersion\" already set in map").
+#
+# Done with awk rather than a YAML parser on purpose: this has to hold on a
+# runner with nothing installed but helm.
+awk '
+  /^---[[:space:]]*$/ { kinds = 0; next }
+  /^kind:/            { kinds++ }
+  kinds > 1           { print "two kinds in one document, near line " NR; found = 1; exit }
+  END                 { exit (found ? 1 : 0) }
+' "$WORK/out.yaml" || fail "ConfigMap and CronJob are welded into one document -- a --- separator is missing"
+
 echo "postgres-backup: ok"
