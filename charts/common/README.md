@@ -950,6 +950,7 @@ postgresBackup:
 | `image.tag` | Must be at least the server's major. `pg_dump` **refuses** to dump a newer server; the script prints both versions first so a mismatch is the first log line. A bare `"postgres:18-alpine"` string is rejected at render with a message naming the key. |
 | `destination.claimName` | Required, and it should not be the database's own PVC — a backup that dies with the thing it protects is not one. |
 | `activeDeadlineSeconds` | Defaults to **1800** here, not `backupCronJob`'s 300: that suits the sqlite jobs it was written for and would kill a real `pg_dump` mid-flight. |
+| `connectTimeoutSeconds` | How long to wait for the database to answer before failing, default **120**. Not optional padding: a freshly created Job pod cannot reach the cluster network for a second or two and the failure is `ECONNREFUSED`, so without the wait every run fails on first contact. |
 | `retentionDays` | Prunes both old `.dump` files and the `.part` files failed runs leave behind. |
 
 What the script does, and why each step is there, is documented in

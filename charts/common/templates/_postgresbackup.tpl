@@ -81,6 +81,27 @@ data:
     #!/bin/sh
     set -eu
 
+    # Wait for the database to accept connections before doing anything else.
+    # This is not belt-and-braces: without it EVERY run failed. A freshly created
+    # Job pod cannot reach the cluster network for the first second or two, and
+    # the failure is ECONNREFUSED rather than a timeout, so pg_dump gives up
+    # instantly instead of retrying. Measured on a live cluster: the job failed
+    # all three attempts, every time, while the identical command from a pod that
+    # had been up a few seconds connected first try.
+    #
+    # pg_isready reads the same PG* variables as everything below, so it needs no
+    # arguments and no password -- it only asks whether the server is answering.
+    waited=0
+    until pg_isready -q; do
+      if [ "${waited}" -ge "${CONNECT_TIMEOUT}" ]; then
+        echo "[pg-backup] FAILED: ${PGHOST}:${PGPORT} not accepting connections after ${CONNECT_TIMEOUT}s" >&2
+        exit 1
+      fi
+      waited=$((waited + 2))
+      sleep 2
+    done
+    [ "${waited}" -gt 0 ] && echo "[pg-backup] database answered after ${waited}s"
+
     STAMP="$(date +%Y%m%d-%H%M%S)"
     OUT="${DEST}/${DB_NAME}-${STAMP}.dump"
     PART="${OUT}.part"
@@ -157,7 +178,8 @@ data:
             "key"  ($b.secretKey | default "password"))))
         "DB_NAME"    $db
         "DEST"       $mount
-        "KEEP_DAYS"  ($keep | toString))
+        "KEEP_DAYS"  ($keep | toString)
+        "CONNECT_TIMEOUT" ($b.connectTimeoutSeconds | default 120 | toString))
      "VolumeMounts" (list (dict "name" "backup" "mountPath" $mount))
      "Volumes" (list (dict "name" "backup" "persistentVolumeClaim" (dict "claimName" $b.destination.claimName)))) }}
 {{- end -}}
