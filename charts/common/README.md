@@ -911,3 +911,50 @@ volumes:
 {{ include "common.pvc" (dict "Root" $ctx "Config" (dict "persistence" .Values.myapp.dataPersistence)) }}
 {{ include "common.deployment" (dict "Root" $ctx "Component" "app") }}
 ```
+
+### `common.postgresBackup`
+
+Parameters: `Root`, `Config`
+
+Renders **both** halves of a nightly `pg_dump`: the ConfigMap holding the script
+and the CronJob that runs it (through `common.backupCronJob`). A consuming chart
+adds a values block and one include:
+
+```yaml
+postgresBackup:
+  enabled: true
+  schedule: "15 3 * * *"
+  host: myapp-postgresql
+  user: myapp
+  database: myapp
+  existingSecret: myapp-database-secret   # required; never rendered inline
+  secretKey: userPassword
+  retentionDays: 14
+  image:
+    repository: postgres
+    tag: "18-alpine"                      # >= the SERVER's major, see below
+  destination:
+    claimName: myapp-backup-pvc           # NOT the database's own volume
+  annotations:                            # the chart must supply these
+    jobwatchdog.mastcloud.nl/enabled: "true"
+    jobwatchdog.mastcloud.nl/max-age: "172800"
+    jobwatchdog.mastcloud.nl/description: "what breaks if this stops"
+```
+
+```
+{{ include "common.postgresBackup" (dict "Root" . "Config" .Values.postgresBackup) }}
+```
+
+| Field | Notes |
+| --- | --- |
+| `image.tag` | Must be at least the server's major. `pg_dump` **refuses** to dump a newer server; the script prints both versions first so a mismatch is the first log line. A bare `"postgres:18-alpine"` string is rejected at render with a message naming the key. |
+| `destination.claimName` | Required, and it should not be the database's own PVC — a backup that dies with the thing it protects is not one. |
+| `activeDeadlineSeconds` | Defaults to **1800** here, not `backupCronJob`'s 300: that suits the sqlite jobs it was written for and would kill a real `pg_dump` mid-flight. |
+| `retentionDays` | Prunes both old `.dump` files and the `.part` files failed runs leave behind. |
+
+What the script does, and why each step is there, is documented in
+`_postgresbackup.tpl`. The short version: `-Fc` custom format, staged through
+`.part` and renamed atomically so a truncated dump never takes the final name,
+verified with `pg_restore --list` before promoting, and a non-zero exit on any
+failure so the dead-man's switch has something to notice.
+

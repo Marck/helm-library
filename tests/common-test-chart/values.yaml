@@ -150,3 +150,23 @@ bareOwnership:
 bareWait:
   targets: []
 
+
+# ── common.postgresBackup ────────────────────────────────────────────────────
+postgresBackup:
+  enabled: true
+  schedule: "15 3 * * *"
+  host: test-postgresql
+  user: testuser
+  database: testdb
+  existingSecret: test-db-secret
+  secretKey: userPassword
+  retentionDays: 7
+  image:
+    repository: postgres
+    tag: "18-alpine"
+  destination:
+    claimName: test-backup-pvc
+  annotations:
+    jobwatchdog.mastcloud.nl/enabled: "true"
+    jobwatchdog.mastcloud.nl/max-age: "172800"
+    jobwatchdog.mastcloud.nl/description: "test"
