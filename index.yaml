@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   common:
   - apiVersion: v2
+    created: "2026-09-17T13:14:49.165153818Z"
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: c8f0cfbac5e5c308f975b767da28030c3ab9ab58c8959237013f5f8c48ab7b2a
+    name: common
+    type: library
+    urls:
+    - common-0.15.2.tgz
+    version: 0.15.2
+  - apiVersion: v2
     created: "2026-09-17T09:36:01.550307913Z"
     description: Library chart providing reusable PV/PVC templates with NFS support
       and nodeSelector configuration
@@ -392,4 +402,4 @@ entries:
     urls:
     - servarr-0.1.0.tgz
     version: 0.1.0
-generated: "2026-09-17T09:36:01.550745448Z"
+generated: "2026-09-17T13:14:49.165569285Z"
