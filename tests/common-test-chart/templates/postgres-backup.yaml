@@ -1,0 +1,1 @@
+{{ include "common.postgresBackup" (dict "Root" . "Config" .Values.postgresBackup) }}
