@@ -12,6 +12,7 @@ app:
   nfsServer: 192.168.2.20
   configPath: /volume1/container_configs   # <configPath>/<name> is this app's dir
   mediaPath: /volume1/media
+  downloadsPath: /volume1/downloads
   gatusGroup: media
 
 # Whether this app mounts the shared media tree. Prowlarr does not — it only
@@ -21,6 +22,38 @@ media:
   enabled: true
   mountPath: /media
   size: 1Ti
+
+# The download client's completed-downloads tree, for the apps that IMPORT from
+# it. This is a separate NFS export from the media tree, so it needs its own
+# mount: an app that cannot see it cannot import, and the way that failure
+# presents is the reason this block exists.
+#
+# Transmission writes to /downloads/complete/<app>/ and reports THAT path over
+# its API. Sonarr and Radarr then try to import from the path they were handed,
+# and with no mount covering it they logged, every few minutes, for over a month:
+#
+#   Import failed, path does not exist or is not accessible by Sonarr:
+#   /downloads/complete/sonarr/<release>
+#
+# Nothing else showed it. The apps were Available, the download client was
+# healthy, the torrents were complete, and ~14 GB sat in
+# /volume1/downloads/complete/{sonarr,radarr} that never reached the library.
+#
+# `mountPath` MUST match the path the download client reports, which is why it is
+# /downloads and not something tidier: the app resolves the string it is given,
+# it does not translate it. A Remote Path Mapping in the app cannot substitute
+# for the mount, only redirect one path to another the app can already see.
+#
+# Off by default: prowlarr has no library and bazarr subtitles files that are
+# already in the media tree, so neither imports anything.
+downloads:
+  enabled: false
+  mountPath: /downloads
+  # Only a claim-matching number: an NFS PV is not thin-provisioned and the
+  # kubelet enforces nothing here, so this is documentation of the expected
+  # working-set rather than a quota. 200Gi reflects what the completed tree
+  # actually holds; the 1Ti on the media volume is the library it grows into.
+  size: 200Gi
 
 # image.repository/tag are per-app; the rest is shared.
 image:
