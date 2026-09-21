@@ -48,8 +48,36 @@ file directly and knows nothing about this one.
 
 ## What it renders
 
-PV + PVC (config, and the media tree unless `media.enabled: false`), the
-Deployment, its Service, the forward-auth'd Ingress, and a `helm test` pod.
+PV + PVC (config; the media tree unless `media.enabled: false`; the
+completed-downloads tree when `downloads.enabled: true`), the Deployment, its
+Service, the forward-auth'd Ingress, and a `helm test` pod.
+
+## `downloads`
+
+An app that IMPORTS needs a mount for the download client's completed tree, and
+`downloads.enabled: true` gives it one. Off by default: Prowlarr has no library,
+and Bazarr subtitles files that are already in the media tree.
+
+```yaml
+downloads:
+  enabled: true      # sonarr, radarr, lidarr
+```
+
+`mountPath` defaults to `/downloads` and should stay there. Transmission writes
+to `/downloads/complete/<app>/` and reports **that path** over its API; the
+importing app resolves the string it is handed rather than translating it, so a
+tidier mount path breaks every import. A Remote Path Mapping inside the app can
+only redirect one path to another the app can already reach, so it is not a
+substitute for the mount.
+
+This is a separate NFS export from the media tree, which has two consequences.
+Imports copy rather than hardlink, and the mount carries the shared NAS group
+(`supplementalGroups`) because the files were written by the download client's
+uid, not the importer's.
+
+The failure this prevents is quiet. With no mount the apps stay Available, the
+download client stays healthy and the torrents complete, while every import logs
+`path does not exist or is not accessible` and nothing reaches the library.
 
 ## `externalAuth`
 
