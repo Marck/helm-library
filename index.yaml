@@ -333,6 +333,20 @@ entries:
     version: 0.3.0
   servarr:
   - apiVersion: v2
+    created: "2026-09-21T08:18:48.463394603Z"
+    dependencies:
+    - name: common
+      repository: https://Marck.github.io/helm-library
+      version: 0.14.0
+    description: The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr — one
+      implementation of the shape all four had a copy of
+    digest: edbd3f5a66a4077298c563083099a567c68fc742234bb83efc9a9d954f605bcb
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     created: "2026-09-13T12:35:06.771589171Z"
     dependencies:
     - name: common
@@ -402,4 +416,4 @@ entries:
     urls:
     - servarr-0.1.0.tgz
     version: 0.1.0
-generated: "2026-09-17T13:14:49.165569285Z"
+generated: "2026-09-21T08:18:48.463460673Z"
