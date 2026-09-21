@@ -48,10 +48,28 @@ how radarr keeps its node-local /config and its extra init container.
       "accessModes" (list "ReadWriteMany")
       "nfs" (dict "server" $app.nfsServer "path" $app.mediaPath)) -}}
 {{- end -}}
+{{- /* The completed-downloads tree, for the apps that import from it. Also
+       ReadWriteMany: the download client writes here while the importer reads
+       and then deletes. mountPath must equal the path the download client
+       reports over its API, or the app is handed a string it cannot resolve. */ -}}
+{{- if ($v.downloads).enabled -}}
+{{- $volumeMounts = append $volumeMounts (dict "name" "downloads" "mountPath" $v.downloads.mountPath) -}}
+{{- $volumes = append $volumes (dict "name" "downloads" "persistentVolumeClaim" (dict "claimName" (printf "%s-downloads-pvc" $name))) -}}
+{{- $_ := set $pvs "downloads" (dict
+      "enabled" true
+      "name" (printf "%s-downloads-pv" $name)
+      "pvcName" (printf "%s-downloads-pvc" $name)
+      "storageClassName" (printf "%s-downloads" $name)
+      "size" $v.downloads.size
+      "accessModes" (list "ReadWriteMany")
+      "nfs" (dict "server" $app.nfsServer "path" ($app.downloadsPath | required "servarr: app.downloadsPath is required when downloads.enabled"))) -}}
+{{- end -}}
 {{- $host := printf "%s.%s" $name $app.domain -}}
 {{- /* supplementalGroups: the shared NAS group only matters to the apps that
-       mount the shared media tree. Prowlarr talks to indexers and never touches
-       it, so it does not carry the group. */ -}}
+       mount a shared NFS tree. Prowlarr talks to indexers and never touches
+       one, so it does not carry the group. The downloads tree needs it for the
+       same reason media does: its files are group-owned by the NAS group, and
+       an importer that cannot read them cannot import. */ -}}
 {{- $derived := dict
     "fullnameOverride" $name
     "podSecurityContext" (merge
@@ -59,7 +77,7 @@ how radarr keeps its node-local /config and its extra init container.
          "fsGroup" $uid
          "fsGroupChangePolicy" "OnRootMismatch"
          "seccompProfile" (dict "type" "RuntimeDefault"))
-       (ternary (dict "supplementalGroups" (list $gid)) dict (($v.media).enabled | default false)))
+       (ternary (dict "supplementalGroups" (list $gid)) dict (or (($v.media).enabled | default false) (($v.downloads).enabled | default false))))
     "env" (dict "PUID" (printf "%d" $uid) "PGID" (printf "%d" $gid))
     "service" (dict "type" "ClusterIP" "port" $port "portName" "http" "targetPort" "http")
     "ingress" (dict
@@ -79,7 +97,7 @@ how radarr keeps its node-local /config and its extra init container.
        "volumeMounts" (list (dict "name" "config" "mountPath" ($v.config).mountPath))) -}}
 {{- /* The app's own values win: derived defaults first, then everything the
        chart and the app set on top. */ -}}
-{{- $resolved := mergeOverwrite $derived (omit (deepCopy $v) "app" "config" "media") -}}
+{{- $resolved := mergeOverwrite $derived (omit (deepCopy $v) "app" "config" "media" "downloads") -}}
 {{- /* The External-auth edit is an init container like any other, appended LAST
        so it has the final word on the auth mode: it patches config.xml, and a
        restore step running after it would put the old setting back. Rendered
