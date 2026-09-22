@@ -144,3 +144,36 @@ replicaCount: {{ .Values.replicaCount }}
 {{- .Default -}}
 {{- end -}}
 {{- end -}}
+
+{{- /*
+  common.imageRef — build a container image reference from an image dict.
+
+  Renders repository[:tag][@digest]. The digest is what actually pins the
+  image: a tag is a moving pointer, and several upstreams (byparr, for one)
+  publish nothing but `latest`, so without this there is no way to pin them
+  and a chart silently redeploys whatever `latest` means today.
+
+  Both parts are emitted when both are set. `repo:tag@sha256:...` is valid OCI
+  and the digest wins, so the tag stays as human-readable documentation of
+  what the digest resolved to.
+
+  NOT named `common.image`, which looks like the obvious choice and is taken.
+  Helm template names are global across a chart and every subchart, and the
+  Bitnami-style `valkey` subchart vendored under immich defines its own
+  `common.image` with a different signature (dict "image" ... "global" ...).
+  Defining ours under that name silently hijacked valkey's calls and rendered
+  `image: <nil>` in the immich release.
+
+  Usage: image: {{ include "common.imageRef" $config.image | quote }}
+*/}}
+{{- define "common.imageRef" -}}
+{{- $image := . | default dict -}}
+{{- $ref := $image.repository | toString -}}
+{{- if $image.tag -}}
+{{- $ref = printf "%s:%s" $ref ($image.tag | toString) -}}
+{{- end -}}
+{{- if $image.digest -}}
+{{- $ref = printf "%s@%s" $ref ($image.digest | toString) -}}
+{{- end -}}
+{{- $ref -}}
+{{- end -}}

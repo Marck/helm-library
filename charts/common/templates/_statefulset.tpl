@@ -72,7 +72,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ $comp }}
-          image: "{{ $config.image.repository }}{{ if $config.image.tag }}:{{ $config.image.tag }}{{ end }}"
+          image: {{ include "common.imageRef" $config.image | quote }}
           {{- if $config.image.pullPolicy }}
           imagePullPolicy: {{ $config.image.pullPolicy }}
           {{- end }}
