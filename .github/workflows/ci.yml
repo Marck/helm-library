@@ -98,3 +98,9 @@ jobs:
       # per ingress on every config reload. Nothing fails, so it accumulates.
       - name: Ingress TLS secretName is opt-in
         run: tests/ingress-tls.sh
+
+      # A tag is a moving pointer, and some upstreams ship only `latest`. This
+      # asserts image.digest reaches every workload kind, and that a chart which
+      # sets no digest renders exactly as before.
+      - name: image.digest pins the image on every workload kind
+        run: tests/image-digest.sh
