@@ -61,23 +61,43 @@ and Bazarr subtitles files that are already in the media tree.
 ```yaml
 downloads:
   enabled: true      # sonarr, radarr, lidarr
+  root: /downloads   # export root inside the container
+  tree: automated    # shared tree; each app gets <tree>/<app.name>
 ```
 
-`mountPath` defaults to `/downloads` and should stay there. Transmission writes
-to `/downloads/complete/<app>/` and reports **that path** over its API; the
-importing app resolves the string it is handed rather than translating it, so a
-tidier mount path breaks every import. A Remote Path Mapping inside the app can
-only redirect one path to another the app can already reach, so it is not a
-substitute for the mount.
+The mount is scoped with `subPath: <tree>/<app.name>`, so sonarr renders
+
+```yaml
+- name: downloads
+  mountPath: /downloads/automated/sonarr
+  subPath: automated/sonarr
+```
+
+That path is not cosmetic. Each app's download client is configured with an
+explicit Directory of `/downloads/automated/<app>`, the client reports **that
+absolute path** back over its API, and the app resolves the string it is handed
+rather than translating it. With no mount, Sonarr logged for every grab:
+
+```
+Remote download client Transmission places downloads in
+/downloads/automated/sonarr but this directory does not appear to exist.
+```
+
+A Remote Path Mapping inside the app is not a substitute; it can only redirect
+one path to another the app can already reach.
+
+`subPath` rather than the whole export so a pod cannot see the other apps'
+downloads, and so hand-added torrents in `/volume1/downloads/manual` stay outside
+every app's mount. Read-write, because the import moves the file out.
 
 This is a separate NFS export from the media tree, which has two consequences.
 Imports copy rather than hardlink, and the mount carries the shared NAS group
 (`supplementalGroups`) because the files were written by the download client's
 uid, not the importer's.
 
-The failure this prevents is quiet. With no mount the apps stay Available, the
-download client stays healthy and the torrents complete, while every import logs
-`path does not exist or is not accessible` and nothing reaches the library.
+The failure this prevents is quiet. The apps stay Available, the download client
+stays healthy and the torrents complete, while the items sit at
+completed / importPending and nothing reaches the library.
 
 ## `externalAuth`
 

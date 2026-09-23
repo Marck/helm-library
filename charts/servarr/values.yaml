@@ -28,27 +28,39 @@ media:
 # mount: an app that cannot see it cannot import, and the way that failure
 # presents is the reason this block exists.
 #
-# Transmission writes to /downloads/complete/<app>/ and reports THAT path over
-# its API. Sonarr and Radarr then try to import from the path they were handed,
-# and with no mount covering it they logged, every few minutes, for over a month:
+# Each automated app has its own directory on the NAS under
+# /volume1/downloads/automated/<app>, and its download client is configured with
+# that directory as an explicit Directory. Transmission then reports THAT
+# absolute path back over its API, and the app resolves the string it is handed
+# rather than translating it. Sonarr, Radarr and Lidarr had no downloads mount
+# at all, so every grab finished and then stopped at completed / importPending:
 #
-#   Import failed, path does not exist or is not accessible by Sonarr:
-#   /downloads/complete/sonarr/<release>
+#   Remote download client Transmission places downloads in
+#   /downloads/automated/sonarr but this directory does not appear to exist.
 #
 # Nothing else showed it. The apps were Available, the download client was
-# healthy, the torrents were complete, and ~14 GB sat in
-# /volume1/downloads/complete/{sonarr,radarr} that never reached the library.
+# healthy and every torrent completed, while 10 Sonarr and 3 Radarr items sat
+# importPending and nothing reached the library.
 #
-# `mountPath` MUST match the path the download client reports, which is why it is
-# /downloads and not something tidier: the app resolves the string it is given,
-# it does not translate it. A Remote Path Mapping in the app cannot substitute
-# for the mount, only redirect one path to another the app can already see.
+# The mount is scoped with subPath to <tree>/<app.name>, which does two things:
+# the in-container path equals the configured Directory exactly (the point), and
+# a pod cannot see any other app's downloads. A Remote Path Mapping inside the
+# app is not a substitute; it can only redirect one path to another the app can
+# already reach.
 #
 # Off by default: prowlarr has no library and bazarr subtitles files that are
 # already in the media tree, so neither imports anything.
 downloads:
   enabled: false
-  mountPath: /downloads
+  # The export root as it appears inside the container. root + tree + app.name
+  # is the mountPath, so for sonarr this renders /downloads/automated/sonarr.
+  root: /downloads
+  # The shared tree the automated apps write into, relative to the export root.
+  # It is also the subPath prefix, so it must match the directory layout on the
+  # NAS: /volume1/downloads/automated/{sonarr,radarr,lidarr,aerofoil}.
+  # Hand-added torrents live in /volume1/downloads/manual and are deliberately
+  # outside every app's mount.
+  tree: automated
   # Only a claim-matching number: an NFS PV is not thin-provisioned and the
   # kubelet enforces nothing here, so this is documentation of the expected
   # working-set rather than a quota. 200Gi reflects what the completed tree
