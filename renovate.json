@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "github>marck/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "common is our own library chart, cut by this repo's own CI, so a soak before adopting it only delays our own work.",
+      "matchDatasources": [
+        "helm"
+      ],
+      "matchDepNames": [
+        "common"
+      ],
+      "minimumReleaseAge": "0 days",
+      "addLabels": [
+        "library-chart"
+      ]
+    }
+  ],
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate dependency dashboard"
+}
