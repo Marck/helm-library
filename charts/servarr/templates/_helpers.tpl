@@ -50,10 +50,23 @@ how radarr keeps its node-local /config and its extra init container.
 {{- end -}}
 {{- /* The completed-downloads tree, for the apps that import from it. Also
        ReadWriteMany: the download client writes here while the importer reads
-       and then deletes. mountPath must equal the path the download client
-       reports over its API, or the app is handed a string it cannot resolve. */ -}}
+       and then deletes.
+
+       The mount is scoped with subPath to <tree>/<app.name>, so the pod sees
+       ONLY its own directory and the in-container path is identical to the
+       Directory configured in the app's download client. That equality is the
+       whole feature: the app resolves the absolute path the client reports
+       rather than translating it, so with the wrong path (or no mount) sonarr
+       logs, for every grab,
+
+         Remote download client Transmission places downloads in
+         /downloads/automated/sonarr but this directory does not appear to exist.
+
+       and the item sits at completed / importPending forever. */ -}}
 {{- if ($v.downloads).enabled -}}
-{{- $volumeMounts = append $volumeMounts (dict "name" "downloads" "mountPath" $v.downloads.mountPath) -}}
+{{- $dlSubPath := join "/" (compact (list (($v.downloads.tree | default "") | trimAll "/") $name)) -}}
+{{- $dlMountPath := printf "%s/%s" ($v.downloads.root | trimSuffix "/") $dlSubPath -}}
+{{- $volumeMounts = append $volumeMounts (dict "name" "downloads" "mountPath" $dlMountPath "subPath" $dlSubPath "readOnly" false) -}}
 {{- $volumes = append $volumes (dict "name" "downloads" "persistentVolumeClaim" (dict "claimName" (printf "%s-downloads-pvc" $name))) -}}
 {{- $_ := set $pvs "downloads" (dict
       "enabled" true
