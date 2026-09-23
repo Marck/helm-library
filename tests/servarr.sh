@@ -10,11 +10,15 @@
 #     rewrite (these charts carry their uid in PUID/PGID, which nothing can read);
 #   * one `app:` block must be enough — the whole point of the chart is that a
 #     Servarr app is a name, a uid and a port;
-#   * an app that imports must MOUNT what it imports from, at the path the
-#     download client reports, and it must carry the shared NAS group so it can
-#     read files it did not write. Sonarr and Radarr had neither for over a
-#     month: every import failed with "path does not exist or is not accessible"
-#     while both apps reported Available and every torrent completed.
+#   * an app that imports must MOUNT what it imports from, at EXACTLY the path
+#     its download client is configured with, and it must carry the shared NAS
+#     group so it can read files it did not write. Sonarr, Radarr and Lidarr had
+#     neither: every grab completed and then stopped at importPending with
+#     "Remote download client Transmission places downloads in
+#     /downloads/automated/sonarr but this directory does not appear to exist",
+#     while all three apps reported Available;
+#   * the mount must be subPath-scoped to the app's own directory, so one app
+#     cannot see another's downloads or the hand-added /manual tree.
 set -eu
 
 DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -58,7 +62,7 @@ else
   bad "downloads with no path is refused (wrong message)"
 fi
 
-uv run --quiet --with pyyaml python3 - "$WORK/render.yaml" "$WORK/render-downloads.yaml" <<'PY'
+uv run --quiet --with pyyaml python3 - "$WORK/render.yaml" "$WORK/render-downloads.yaml" "$CHART/values.yaml" <<'PY'
 import sys, yaml
 
 docs = {(d["kind"], d["metadata"]["name"]): d
@@ -117,22 +121,40 @@ check(probe["httpGet"]["path"] == "/", "probes hit /, never /ping (it queries SQ
 # Default OFF, so nothing an existing app chart renders changes until it opts in.
 check(("PersistentVolume", "sonarr-downloads-pv") not in docs,
       "downloads is off by default, so an app that does not import is unchanged")
-check("/downloads" not in [m["mountPath"] for m in
-      docs[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]],
-      "no /downloads mount unless asked for")
+check(not [m for m in
+      docs[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]["containers"][0]["volumeMounts"]
+      if m["mountPath"].startswith("/downloads")],
+      "no downloads mount unless asked for")
 
 dl = {(d["kind"], d["metadata"]["name"]): d
       for d in yaml.safe_load_all(open(sys.argv[2])) if d}
 dlpod = dl[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]
-mounts = {m["mountPath"] for m in dlpod["containers"][0]["volumeMounts"]}
+dlmounts = [m for m in dlpod["containers"][0]["volumeMounts"] if m["name"] == "downloads"]
+check(len(dlmounts) == 1, "downloads.enabled adds exactly one downloads mount")
+m = dlmounts[0] if dlmounts else {}
 
-# The path is the whole point: the app resolves the string the download client
-# hands it over the API, so a tidier mountPath silently breaks every import.
-check("/downloads" in mounts,
-      "downloads.enabled mounts the tree at the path the download client reports")
+# The path is the whole point: the app resolves the absolute path its download
+# client reports, so a mountPath that is not the configured Directory silently
+# leaves every grab at importPending. Asserted as a relationship against the
+# chart's own values, not against a constant copied into the test.
+vals = yaml.safe_load(open(sys.argv[3]))
+root, tree = vals["downloads"]["root"], vals["downloads"]["tree"]
+check(m.get("subPath") == f"{tree}/sonarr",
+      "the mount is subPath-scoped to the app's own directory, so it sees no other app's downloads")
+check(m.get("mountPath") == f"{root}/{m.get('subPath')}",
+      "mountPath is root + subPath, so it equals the Directory configured in the download client")
+check(not m.get("subPath", "/").startswith("/"),
+      "the subPath is relative, which is the only form the kubelet accepts")
+check(m.get("readOnly") is not True,
+      "the downloads mount is read-write: the import moves the file out")
+
 pv = dl[("PersistentVolume", "sonarr-downloads-pv")]
 check(pv["spec"]["nfs"]["path"] == "/volume1/downloads",
       "the downloads NFS path is derived from app.downloadsPath")
+# The export root plus the subPath must be the real directory on the NAS, or the
+# kubelet silently creates an empty one and the import still finds nothing.
+check(f"{pv['spec']['nfs']['path']}/{m.get('subPath')}" == "/volume1/downloads/automated/sonarr",
+      "export + subPath is the directory that exists on the NAS")
 check(pv["spec"]["accessModes"] == ["ReadWriteMany"],
       "the downloads tree is RWM: the client writes while the importer reads")
 check(pv["spec"]["nfs"]["path"] != dl[("PersistentVolume", "sonarr-media-pv")]["spec"]["nfs"]["path"],
@@ -143,8 +165,9 @@ check(("PersistentVolumeClaim", "sonarr-downloads-pvc") in dl,
 # pod rather than anything naming the size.
 dlpvc = dl[("PersistentVolumeClaim", "sonarr-downloads-pvc")]
 check(pv["spec"]["capacity"]["storage"]
-      == dlpvc["spec"]["resources"]["requests"]["storage"] == "200Gi",
-      "the downloads PV and PVC agree on the size, so the claim can bind")
+      == dlpvc["spec"]["resources"]["requests"]["storage"]
+      == vals["downloads"]["size"],
+      "the downloads PV and PVC agree on the size from values.yaml, so the claim can bind")
 # Group-owned by the NAS group and written by the download client's uid, so the
 # importer reads them only through supplementalGroups.
 check(dlpod["securityContext"].get("supplementalGroups") == [100],
