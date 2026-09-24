@@ -26,7 +26,7 @@ jobs:
       # installed it; CI stayed green only while the runner image happened to
       # ship uv, and went red the moment it stopped. Pin it rather than depend
       # on the image.
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
 
       - name: Helm lint --strict
         run: |
