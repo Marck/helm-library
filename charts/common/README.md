@@ -210,6 +210,33 @@ component can move between the two with no value changes. Used for per-node agen
 | `ports[].hostPort` | Bind a container port on the node |
 | `nodeSelector` | Honoured when the component sets the key — **an empty map clears the chart-level default** so the DaemonSet lands on every node; omit the key to inherit `Root.Values.nodeSelector` |
 
+### `common.keepalived`
+
+Parameters: `Root`, `Component` (default `"keepalived"`), `Config` (required)
+
+A LAN address held over VRRP by keepalived: a hostNetwork DaemonSet (one pod per
+node) plus its ConfigMap, named `<fullname>-<Component>`. Nothing Kubernetes is in
+the traffic path: the app serves on a `hostPort`, and whichever node holds the
+address answers it. Needs a keepalived image with busybox `ip`/`sed`/`awk`
+(`ghcr.io/marck/keepalived`) and a namespace at PSA `privileged`.
+
+| Field | Description |
+| --- | --- |
+| `vip` | The address (required). Rendered through `tpl`, so it may reference values |
+| `virtualRouterId` | VRRP group id, unique per LAN segment (default `51`) |
+| `instanceName` | Name in keepalived's logs (default `VI_<id>`) |
+| `preferredNodeIP` | Node (`status.hostIP`) that gets `priorityPreferred` (110); others get `priorityOther` (100) |
+| `advertInt`, `garpMasterRefresh` | Advert interval (1s) and periodic gratuitous ARP (60s) |
+| `track` | Optional check: `script` (path in the image), `env` (tpl'd; `TRACK_TARGET` is always the node IP), `interval`, `timeout`, `fall`, `rise`, `weight` (**must be negative**, the render fails otherwise), `name` |
+| `image`, `imagePullSecrets`, `resources`, `nodeSelector`, `tolerations`, ... | As for `common.daemonset` |
+
+Defaults that are load-bearing: capabilities `NET_ADMIN`, `NET_RAW` **and `SETGID`**
+(without it the track script never runs and every check reports success),
+`nodeSelector: {}` (a pair with one member is no failover), tolerate everything,
+`updateStrategy: OnDelete` (restart holders one at a time). keepalived removes its
+addresses at startup, so never first-start it on a node where something else holds
+the same address.
+
 ### `common.service`
 
 Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.Values`)
