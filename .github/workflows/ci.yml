@@ -104,3 +104,9 @@ jobs:
       # sets no digest renders exactly as before.
       - name: image.digest pins the image on every workload kind
         run: tests/image-digest.sh
+
+      # A VRRP address only fails over if every member runs, a failing check
+      # demotes instead of FAULTing, and the track script can run at all
+      # (SETGID). Each of those rendered fine and failed live on the adguard VIP.
+      - name: common.keepalived renders a working VRRP pair
+        run: tests/keepalived.sh
