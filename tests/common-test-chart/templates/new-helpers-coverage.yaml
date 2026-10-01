@@ -390,3 +390,26 @@
      "Config" (dict
        "schedule" "*/5 * * * *"
        "image" (dict "repository" "busybox" "tag" "1.36"))) }}
+---
+{{- /* common.keepalived: a VRRP address, with a track script (pair) and without
+       (single holder). Asserted by tests/keepalived.sh. */}}
+{{ include "common.keepalived" (dict "Root" . "Component" "vip-dns"
+     "Config" (dict
+       "vip" "192.0.2.2"
+       "virtualRouterId" 2
+       "instanceName" "DNS"
+       "preferredNodeIP" "192.0.2.12"
+       "image" (dict "repository" "ghcr.io/example/keepalived" "tag" "2.3.1")
+       "imagePullSecrets" (list (dict "name" "pull"))
+       "track" (dict
+         "name" "dns_ok"
+         "script" "/usr/local/bin/dns-track.sh"
+         "weight" -40
+         "env" (dict "QUERY_NAME" "example.org" "EXPECT_ANSWER" "192.0.2.12")))) }}
+---
+{{ include "common.keepalived" (dict "Root" . "Component" "vip-single"
+     "Config" (dict
+       "vip" "192.0.2.3"
+       "virtualRouterId" 3
+       "nodeSelector" (dict "node-role.kubernetes.io/worker" "worker")
+       "image" (dict "repository" "ghcr.io/example/keepalived" "tag" "2.3.1"))) }}
