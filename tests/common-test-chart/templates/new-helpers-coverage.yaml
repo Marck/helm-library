@@ -408,6 +408,19 @@
          "env" (dict "QUERY_NAME" "example.org" "EXPECT_ANSWER" "192.0.2.12"))
        "drain" (dict "weight" -20))) }}
 ---
+{{- /* A pair with a second check (public names) next to the track and a drain. */}}
+{{ include "common.keepalived" (dict "Root" . "Component" "vip-extra"
+     "Config" (dict
+       "vip" "192.0.2.4"
+       "virtualRouterId" 4
+       "preferredNodeIP" "192.0.2.12"
+       "image" (dict "repository" "ghcr.io/example/keepalived" "tag" "2.3.1")
+       "track" (dict "name" "dns_ok" "script" "/usr/local/bin/dns-track.sh" "weight" -40
+         "env" (dict "QUERY_NAME" "example.org" "EXPECT_ANSWER" "192.0.2.12"))
+       "extraTracks" (list (dict "name" "dns_public" "interval" 5 "timeout" 3 "weight" -40
+         "script" "/usr/bin/env QUERY_NAME=example.com EXPECT_ANSWER= /usr/local/bin/dns-track.sh"))
+       "drain" (dict "weight" -20))) }}
+---
 {{ include "common.keepalived" (dict "Root" . "Component" "vip-single"
      "Config" (dict
        "vip" "192.0.2.3"
