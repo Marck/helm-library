@@ -11,6 +11,8 @@
 #   * a single holder with no track must not render an empty track_script.
 #   * drain mounted read-only: keepalived drops the track_file with a warning
 #     and planned restarts lose queries again (verified in the image).
+#   * a second check (extraTracks) must be its own vrrp_script, tracked by the
+#     instance, start failed, and keep the same weight rules.
 #   * drain weight outside (priority gap, |track.weight| - gap): a draining
 #     node either keeps the address or loses it to a broken node.
 set -eu
@@ -38,7 +40,7 @@ def check(ok, msg):
 def get(kind, name):
     return next((d for d in docs if d["kind"] == kind and d["metadata"]["name"].endswith("-" + name)), None)
 
-for comp, tracked in (("vip-dns", True), ("vip-single", False)):
+for comp, tracked in (("vip-dns", True), ("vip-extra", True), ("vip-single", False)):
     ds, cm = get("DaemonSet", comp), get("ConfigMap", comp)
     check(ds is not None and cm is not None, f"{comp}: DaemonSet and ConfigMap render")
     if ds is None or cm is None: continue
@@ -80,6 +82,13 @@ for c in (dns["containers"][0], dns["initContainers"][0]):
     m = next((m for m in c["volumeMounts"] if m["name"] == "drain"), None)
     check(m is not None and m["mountPath"] == "/drain" and not m.get("readOnly"), f"pair: {c['name']} mounts /drain read-write")
 check(not any(v["name"] == "drain" for v in single["volumes"]), "single: no drain volume")
+ex = get("ConfigMap", "vip-extra")["data"]["keepalived.conf"]
+exc = get("DaemonSet", "vip-extra")["spec"]["template"]["spec"]["containers"][0]
+check("vrrp_script dns_public {" in ex and 'script "/usr/bin/env QUERY_NAME=example.com EXPECT_ANSWER= /usr/local/bin/dns-track.sh"' in ex,
+      "extra: second vrrp_script with its own variables")
+check(re.search(r"track_script \{\s*dns_ok\s*dns_public\s*\}", ex) is not None, "extra: the instance tracks both checks")
+check(ex.count("init_fail") == 2 and re.search(r"^\s*interval 5$", ex, re.M) is not None, "extra: starts failed, own interval")
+check("TRACK_TARGET" in {e["name"] for e in exc["env"]}, "extra: TRACK_TARGET set")
 if fails:
     sys.exit(f"{len(fails)} check(s) failed")
 PY
@@ -98,5 +107,8 @@ echo "== bad weights are refused"
 refuse "track weight 0" '{{ include "common.keepalived" (dict "Root" . "Config" (dict "vip" "192.0.2.9" "image" (dict "repository" "x" "tag" "1") "track" (dict "script" "/x" "weight" 0))) }}' "must be negative"
 refuse "drain weight 0" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" 0))) }}" "must be negative"
 refuse "drain weight -10 (= gap)" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" -10))) }}" "must exceed the priority gap"
+refuse "extra weight 0" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"extraTracks\" (list (dict \"name\" \"p\" \"script\" \"/x\" \"weight\" 0)))) }}" "must be negative"
+refuse "extra name reused" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"extraTracks\" (list (dict \"name\" \"track\" \"script\" \"/x\" \"weight\" -40)))) }}" "used twice"
+refuse "drain vs extra -25" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" -20) \"extraTracks\" (list (dict \"name\" \"p\" \"script\" \"/x\" \"weight\" -25)))) }}" "must stay under"
 refuse "drain weight -30 (= |track| - gap)" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" -30))) }}" "must stay under"
 echo "ok    common.keepalived"

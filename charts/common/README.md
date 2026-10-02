@@ -228,6 +228,7 @@ address answers it. Needs a keepalived image with busybox `ip`/`sed`/`awk`
 | `preferredNodeIP` | Node (`status.hostIP`) that gets `priorityPreferred` (110); others get `priorityOther` (100) |
 | `advertInt`, `garpMasterRefresh` | Advert interval (1s) and periodic gratuitous ARP (60s) |
 | `track` | Optional check: `script` (path in the image), `env` (tpl'd; `TRACK_TARGET` is always the node IP), `interval`, `timeout`, `fall`, `rise`, `weight` (**must be negative**, the render fails otherwise), `name` |
+| `extraTracks` | More checks, each its own `vrrp_script` (keys of `track` except `env`, same weight rule). Give one its own variables on the command line: `"/usr/bin/env QUERY_NAME=x EXPECT_ANSWER= /path/check.sh"` |
 | `drain` | Optional, for lossless planned restarts: `weight` (negative, between the priority gap and `\|track.weight\|` minus it; the render checks) and `hostPath` (default `/run/keepalived-drain/<fullname>`). See below |
 | `image`, `imagePullSecrets`, `resources`, `nodeSelector`, `tolerations`, ... | As for `common.daemonset` |
 
