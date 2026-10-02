@@ -391,8 +391,8 @@
        "schedule" "*/5 * * * *"
        "image" (dict "repository" "busybox" "tag" "1.36"))) }}
 ---
-{{- /* common.keepalived: a VRRP address, with a track script (pair) and without
-       (single holder). Asserted by tests/keepalived.sh. */}}
+{{- /* common.keepalived: a VRRP address, with a track script and a drain file
+       (pair) and without either (single holder). Asserted by tests/keepalived.sh. */}}
 {{ include "common.keepalived" (dict "Root" . "Component" "vip-dns"
      "Config" (dict
        "vip" "192.0.2.2"
@@ -405,7 +405,8 @@
          "name" "dns_ok"
          "script" "/usr/local/bin/dns-track.sh"
          "weight" -40
-         "env" (dict "QUERY_NAME" "example.org" "EXPECT_ANSWER" "192.0.2.12")))) }}
+         "env" (dict "QUERY_NAME" "example.org" "EXPECT_ANSWER" "192.0.2.12"))
+       "drain" (dict "weight" -20))) }}
 ---
 {{ include "common.keepalived" (dict "Root" . "Component" "vip-single"
      "Config" (dict

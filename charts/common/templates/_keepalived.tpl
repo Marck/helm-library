@@ -24,6 +24,19 @@
       interval, timeout, fall, rise
       weight             MUST be negative: 0 puts a failing node in FAULT,
                          which drops the address
+    drain                optional, makes planned restarts of the app lossless:
+      weight             penalty while the app on this node drains; must sit
+                         between the priority gap and |track.weight| minus it
+                         (the render fails otherwise)
+      hostPath           node directory shared with the app pod (default
+                         /run/keepalived-drain/<fullname>, tmpfs, gone on reboot)
+                         The app mounts the same directory and writes "1" to
+                         <dir>/flag in its preStop, then keeps serving for a
+                         few seconds while the address moves; it writes "0"
+                         once its old instance has been gone long enough for
+                         the track check to have failed. keepalived reads the
+                         file through inotify (track_file), so there is no
+                         polling delay.
     image, imagePullSecrets, resources, nodeSelector, tolerations, ...
                          as for common.daemonset
 
@@ -36,6 +49,10 @@
     * OnDelete: one template change must not restart every holder at once.
     * keepalived removes its addresses at startup, so never first-start it on
       a node where something else (kube-vip) holds the same address.
+    * A track_file on a read-only mount is dropped with only a warning ("track
+      file ... not found, ignoring") and the instance runs without it, so the
+      drain directory is mounted read-write and the render init container
+      fails on any check keepalived ignores.
 */ -}}
 {{- define "common.keepalived" -}}
 {{- $root := .Root }}
@@ -69,6 +86,17 @@
 {{- with $ka.track }}
 {{- if ge (int .weight) 0 }}{{ fail "common.keepalived: track.weight must be negative; 0 or more sends a failing node to FAULT, which drops the address" }}{{ end }}
 {{- end }}
+{{- with $ka.drain }}
+{{- $w := int .weight }}
+{{- $gap := 0 }}
+{{- if $ka.preferredNodeIP }}{{ $gap = sub (int $ka.priorityPreferred) (int $ka.priorityOther) }}{{ end }}
+{{- if ge $w 0 }}{{ fail "common.keepalived: drain.weight must be negative" }}{{ end }}
+{{- if le (sub 0 $w) $gap }}{{ fail (printf "common.keepalived: drain.weight %d leaves a draining preferred node above a healthy one; its size must exceed the priority gap (%d)" $w $gap) }}{{ end }}
+{{- with $ka.track }}
+{{- if ge (sub 0 $w) (sub (sub 0 (int .weight)) $gap) }}{{ fail (printf "common.keepalived: drain.weight %d puts a draining node (still serving) below one whose track failed; its size must stay under |track.weight| minus the priority gap (%d)" $w (sub (sub 0 (int .weight)) $gap)) }}{{ end }}
+{{- end }}
+{{- $_ := set $ka.drain "hostPath" (.hostPath | default (printf "/run/keepalived-drain/%s" (include "common.fullname" $root))) }}
+{{- end }}
 {{- $conf := include "common.keepalived.conf" (dict "Root" $root "Config" $ka) }}
 {{- $render := include "common.keepalived.render" . }}
 {{ include "common.configmap" (dict "Root" $root "Name" $name "Data" (dict
@@ -85,6 +113,15 @@
 {{- end }}
 {{- $_ := set $ka "env" $env }}
 {{- $image := printf "%s:%s" $ka.image.repository (toString $ka.image.tag) }}
+{{- /* Read-write on purpose: keepalived ignores a track_file on a read-only
+       filesystem. The render init container mounts it too, so its config test
+       sees the same file system. */}}
+{{- $drainMount := list }}
+{{- $drainVolume := list }}
+{{- with $ka.drain }}
+{{- $drainMount = list (dict "name" "drain" "mountPath" "/drain") }}
+{{- $drainVolume = list (dict "name" "drain" "hostPath" (dict "path" .hostPath "type" "DirectoryOrCreate")) }}
+{{- end }}
 {{- $_ := set $ka "initContainers" (list (dict
       "name" "render"
       "image" $image
@@ -100,16 +137,16 @@
         "allowPrivilegeEscalation" false
         "readOnlyRootFilesystem" true
         "capabilities" (dict "drop" (list "ALL")))
-      "volumeMounts" (list
+      "volumeMounts" (concat (list
         (dict "name" "template" "mountPath" "/template" "readOnly" true)
-        (dict "name" "config" "mountPath" "/etc/keepalived")))) }}
-{{- $_ := set $ka "volumeMounts" (list
+        (dict "name" "config" "mountPath" "/etc/keepalived")) $drainMount))) }}
+{{- $_ := set $ka "volumeMounts" (concat (list
       (dict "name" "config" "mountPath" "/etc/keepalived" "readOnly" true)
-      (dict "name" "run" "mountPath" "/run")) }}
-{{- $_ := set $ka "volumes" (list
+      (dict "name" "run" "mountPath" "/run")) $drainMount) }}
+{{- $_ := set $ka "volumes" (concat (list
       (dict "name" "template" "configMap" (dict "name" $name))
       (dict "name" "config" "emptyDir" (dict "medium" "Memory" "sizeLimit" "1Mi"))
-      (dict "name" "run" "emptyDir" (dict "medium" "Memory" "sizeLimit" "1Mi"))) }}
+      (dict "name" "run" "emptyDir" (dict "medium" "Memory" "sizeLimit" "1Mi"))) $drainVolume) }}
 {{- $_ := set $ka "podAnnotations" (merge (dict "checksum/keepalived" (cat $render $conf | sha256sum)) ($ka.podAnnotations | default dict)) }}
 {{ include "common.daemonset" (dict "Root" $root "Component" $comp "Config" $ka) }}
 {{- end }}
@@ -140,6 +177,14 @@ vrrp_script {{ .name | default "track" }} {
     init_fail
 }
 {{ end }}
+{{- with $ka.drain }}
+track_file drain {
+    # The app on this node writes 1 before it stops and 0 once it is safe
+    # again; keepalived picks the change up through inotify.
+    file "/drain/flag"
+    weight {{ .weight }}
+}
+{{ end }}
 vrrp_instance {{ $ka.instanceName | default (printf "VI_%v" $ka.virtualRouterId) }} {
     state BACKUP
     interface @IFACE@
@@ -156,6 +201,11 @@ vrrp_instance {{ $ka.instanceName | default (printf "VI_%v" $ka.virtualRouterId)
 {{- if $ka.track }}
     track_script {
         {{ $ka.track.name | default "track" }}
+    }
+{{- end }}
+{{- if $ka.drain }}
+    track_file {
+        drain
     }
 {{- end }}
 }
@@ -194,5 +244,12 @@ fi
 
 echo "keepalived-render: node $NODE_IP iface $iface priority $prio"
 # --config-test exits 0 for a missing file; only trust it on the path just written.
-keepalived --config-test -l -G -f "$dst"
+# It only warns when it drops a check ("... not found, ignoring", a track_file
+# on a read-only mount), and the instance would run without it.
+out="$(keepalived --config-test -l -G -f "$dst" 2>&1)" || { echo "$out" >&2; exit 1; }
+[ -n "$out" ] && echo "$out"
+if echo "$out" | grep -qiE 'ignoring|cannot be monitored'; then
+  echo "keepalived-render: keepalived would drop part of $dst (see above)" >&2
+  exit 1
+fi
 {{- end }}
