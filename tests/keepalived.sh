@@ -9,6 +9,10 @@
 #   * RollingUpdate: one template change restarts every holder back to back.
 #   * weight >= 0: a failing node goes FAULT and drops the address.
 #   * a single holder with no track must not render an empty track_script.
+#   * drain mounted read-only: keepalived drops the track_file with a warning
+#     and planned restarts lose queries again (verified in the image).
+#   * drain weight outside (priority gap, |track.weight| - gap): a draining
+#     node either keeps the address or loses it to a broken node.
 set -eu
 
 DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -51,6 +55,9 @@ for comp, tracked in (("vip-dns", True), ("vip-single", False)):
     check(("track_script" in conf) == tracked and ("vrrp_script" in conf) == tracked,
           f"{comp}: track script {'present' if tracked else 'absent'}")
     check(cm["data"]["keepalived-render.sh"].startswith("#!/bin/sh"), f"{comp}: render script ships")
+    check(("track_file drain {" in conf) == tracked and ("track_file {" in conf) == tracked,
+          f"{comp}: drain file {'tracked' if tracked else 'absent'}")
+    check("ignoring|cannot be monitored" in cm["data"]["keepalived-render.sh"], f"{comp}: render fails on dropped checks")
 
 dns = get("DaemonSet", "vip-dns")["spec"]["template"]["spec"]
 single = get("DaemonSet", "vip-single")["spec"]["template"]["spec"]
@@ -64,18 +71,32 @@ env = {e["name"]: e for e in dns["containers"][0]["env"]}
 check(env["TRACK_TARGET"]["valueFrom"]["fieldRef"]["fieldPath"] == "status.hostIP", "pair: TRACK_TARGET is the node IP")
 check(env["EXPECT_ANSWER"]["value"] == "192.0.2.12", "pair: track env passed through")
 check([s["name"] for s in dns.get("imagePullSecrets", [])] == ["pull"], "pair: pull secret")
+check(re.search(r'^\s*file "/drain/flag"$', dconf, re.M) is not None and re.search(r"^\s*weight -20$", dconf, re.M) is not None,
+      "pair: drain file and weight -20")
+vol = next((v for v in dns["volumes"] if v["name"] == "drain"), {})
+hp = vol.get("hostPath", {})
+check(hp.get("type") == "DirectoryOrCreate" and hp.get("path", "").startswith("/run/keepalived-drain/"), "pair: drain hostPath default")
+for c in (dns["containers"][0], dns["initContainers"][0]):
+    m = next((m for m in c["volumeMounts"] if m["name"] == "drain"), None)
+    check(m is not None and m["mountPath"] == "/drain" and not m.get("readOnly"), f"pair: {c['name']} mounts /drain read-write")
+check(not any(v["name"] == "drain" for v in single["volumes"]), "single: no drain volume")
 if fails:
     sys.exit(f"{len(fails)} check(s) failed")
 PY
 
-echo "== weight >= 0 is refused"
-cat > "$WORK/neg.yaml" <<'Y'
-{{ include "common.keepalived" (dict "Root" . "Config" (dict "vip" "192.0.2.9" "image" (dict "repository" "x" "tag" "1") "track" (dict "script" "/x" "weight" 0))) }}
-Y
-cp "$WORK/neg.yaml" "$CHART/templates/zz-keepalived-negative.yaml"
-if helm template test "$CHART" >/dev/null 2>"$WORK/err"; then
-  rm -f "$CHART/templates/zz-keepalived-negative.yaml"; echo "  FAIL weight 0 rendered"; exit 1
-fi
-rm -f "$CHART/templates/zz-keepalived-negative.yaml"
-grep -q "must be negative" "$WORK/err" && echo "  ok   weight 0 fails the render" || { echo "  FAIL wrong error"; cat "$WORK/err"; exit 1; }
+# refuse CONFIG ERROR: render a one-off template and expect the render to fail with ERROR.
+refuse() {
+  printf '%s\n' "$2" > "$CHART/templates/zz-keepalived-negative.yaml"
+  if helm template test "$CHART" >/dev/null 2>"$WORK/err"; then
+    rm -f "$CHART/templates/zz-keepalived-negative.yaml"; echo "  FAIL $1 rendered"; exit 1
+  fi
+  rm -f "$CHART/templates/zz-keepalived-negative.yaml"
+  grep -q "$3" "$WORK/err" && echo "  ok   $1 fails the render" || { echo "  FAIL $1: wrong error"; cat "$WORK/err"; exit 1; }
+}
+base='"vip" "192.0.2.9" "image" (dict "repository" "x" "tag" "1") "preferredNodeIP" "192.0.2.1" "track" (dict "script" "/x" "weight" -40)'
+echo "== bad weights are refused"
+refuse "track weight 0" '{{ include "common.keepalived" (dict "Root" . "Config" (dict "vip" "192.0.2.9" "image" (dict "repository" "x" "tag" "1") "track" (dict "script" "/x" "weight" 0))) }}' "must be negative"
+refuse "drain weight 0" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" 0))) }}" "must be negative"
+refuse "drain weight -10 (= gap)" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" -10))) }}" "must exceed the priority gap"
+refuse "drain weight -30 (= |track| - gap)" "{{ include \"common.keepalived\" (dict \"Root\" . \"Config\" (dict $base \"drain\" (dict \"weight\" -30))) }}" "must stay under"
 echo "ok    common.keepalived"
