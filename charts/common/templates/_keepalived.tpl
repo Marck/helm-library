@@ -24,10 +24,14 @@
       interval, timeout, fall, rise
       weight             MUST be negative: 0 puts a failing node in FAULT,
                          which drops the address
+    extraTracks          more checks, each its own vrrp_script with the keys of
+                         `track` except env, same weight rule. A script gets its
+                         own variables on the command line:
+                         "/usr/bin/env QUERY_NAME=x EXPECT_ANSWER= /path/check.sh"
     drain                optional, makes planned restarts of the app lossless:
       weight             penalty while the app on this node drains; must sit
-                         between the priority gap and |track.weight| minus it
-                         (the render fails otherwise)
+                         between the priority gap and each track's |weight|
+                         minus it (the render fails otherwise)
       hostPath           node directory shared with the app pod (default
                          /run/keepalived-drain/<fullname>, tmpfs, gone on reboot)
                          The app mounts the same directory and writes "1" to
@@ -86,6 +90,14 @@
 {{- with $ka.track }}
 {{- if ge (int .weight) 0 }}{{ fail "common.keepalived: track.weight must be negative; 0 or more sends a failing node to FAULT, which drops the address" }}{{ end }}
 {{- end }}
+{{- $names := list }}
+{{- with $ka.track }}{{ $names = append $names (.name | default "track") }}{{ end }}
+{{- range $i, $t := ($ka.extraTracks | default list) }}
+{{- if not (and $t.name $t.script) }}{{ fail (printf "common.keepalived: extraTracks[%d] needs a name and a script" $i) }}{{ end }}
+{{- if has $t.name $names }}{{ fail (printf "common.keepalived: track name %s is used twice" $t.name) }}{{ end }}
+{{- $names = append $names $t.name }}
+{{- if ge (int $t.weight) 0 }}{{ fail (printf "common.keepalived: extraTracks %s: weight must be negative; 0 or more sends a failing node to FAULT, which drops the address" $t.name) }}{{ end }}
+{{- end }}
 {{- with $ka.drain }}
 {{- $w := int .weight }}
 {{- $gap := 0 }}
@@ -94,6 +106,9 @@
 {{- if le (sub 0 $w) $gap }}{{ fail (printf "common.keepalived: drain.weight %d leaves a draining preferred node above a healthy one; its size must exceed the priority gap (%d)" $w $gap) }}{{ end }}
 {{- with $ka.track }}
 {{- if ge (sub 0 $w) (sub (sub 0 (int .weight)) $gap) }}{{ fail (printf "common.keepalived: drain.weight %d puts a draining node (still serving) below one whose track failed; its size must stay under |track.weight| minus the priority gap (%d)" $w (sub (sub 0 (int .weight)) $gap)) }}{{ end }}
+{{- end }}
+{{- range ($ka.extraTracks | default list) }}
+{{- if ge (sub 0 $w) (sub (sub 0 (int .weight)) $gap) }}{{ fail (printf "common.keepalived: drain.weight %d puts a draining node (still serving) below one whose %s check failed; its size must stay under that |weight| minus the priority gap (%d)" $w .name (sub (sub 0 (int .weight)) $gap)) }}{{ end }}
 {{- end }}
 {{- $_ := set $ka.drain "hostPath" (.hostPath | default (printf "/run/keepalived-drain/%s" (include "common.fullname" $root))) }}
 {{- end }}
@@ -105,8 +120,10 @@
 ---
 {{- $nodeIP := dict "valueFrom" (dict "fieldRef" (dict "fieldPath" "status.hostIP")) }}
 {{- $env := dict }}
-{{- with $ka.track }}
+{{- if or $ka.track $ka.extraTracks }}
 {{- $_ := set $env "TRACK_TARGET" $nodeIP }}
+{{- end }}
+{{- with $ka.track }}
 {{- range $k, $v := (.env | default dict) }}
 {{- $_ := set $env $k (tpl (toString $v) $root) }}
 {{- end }}
@@ -177,6 +194,17 @@ vrrp_script {{ .name | default "track" }} {
     init_fail
 }
 {{ end }}
+{{- range $ka.extraTracks }}
+vrrp_script {{ .name }} {
+    script "{{ .script }}"
+    interval {{ .interval | default 2 }}
+    timeout {{ .timeout | default 2 }}
+    fall {{ .fall | default 3 }}
+    rise {{ .rise | default 2 }}
+    weight {{ .weight }}
+    init_fail
+}
+{{ end }}
 {{- with $ka.drain }}
 track_file drain {
     # The app on this node writes 1 before it stops and 0 once it is safe
@@ -198,9 +226,14 @@ vrrp_instance {{ $ka.instanceName | default (printf "VI_%v" $ka.virtualRouterId)
     virtual_ipaddress {
         {{ tpl (toString $ka.vip) $root }}/32 dev @IFACE@
     }
-{{- if $ka.track }}
+{{- if or $ka.track $ka.extraTracks }}
     track_script {
-        {{ $ka.track.name | default "track" }}
+{{- with $ka.track }}
+        {{ .name | default "track" }}
+{{- end }}
+{{- range $ka.extraTracks }}
+        {{ .name }}
+{{- end }}
     }
 {{- end }}
 {{- if $ka.drain }}
