@@ -228,6 +228,7 @@ address answers it. Needs a keepalived image with busybox `ip`/`sed`/`awk`
 | `preferredNodeIP` | Node (`status.hostIP`) that gets `priorityPreferred` (110); others get `priorityOther` (100) |
 | `advertInt`, `garpMasterRefresh` | Advert interval (1s) and periodic gratuitous ARP (60s) |
 | `track` | Optional check: `script` (path in the image), `env` (tpl'd; `TRACK_TARGET` is always the node IP), `interval`, `timeout`, `fall`, `rise`, `weight` (**must be negative**, the render fails otherwise), `name` |
+| `drain` | Optional, for lossless planned restarts: `weight` (negative, between the priority gap and `\|track.weight\|` minus it; the render checks) and `hostPath` (default `/run/keepalived-drain/<fullname>`). See below |
 | `image`, `imagePullSecrets`, `resources`, `nodeSelector`, `tolerations`, ... | As for `common.daemonset` |
 
 Defaults that are load-bearing: capabilities `NET_ADMIN`, `NET_RAW` **and `SETGID`**
@@ -236,6 +237,22 @@ Defaults that are load-bearing: capabilities `NET_ADMIN`, `NET_RAW` **and `SETGI
 `updateStrategy: OnDelete` (restart holders one at a time). keepalived removes its
 addresses at startup, so never first-start it on a node where something else holds
 the same address.
+
+**Drain.** A track script only notices an app that has already stopped, so a planned
+restart on the holder costs a few seconds of failed requests. With `drain` set,
+keepalived also watches `<hostPath>/flag` (a `track_file`, read through inotify). The
+app pod mounts the same `hostPath` and:
+
+- in `preStop`, writes `1` and keeps serving for a while (the address moves in about
+  4s: the other node's VRRP timeout);
+- in `postStart`, if the flag is `1`, waits until the track check has had time to
+  fail (`fall` x `interval` + `timeout`), then writes `0`. Clearing it sooner lets the
+  node reclaim the address before its app answers.
+
+The drain directory is mounted read-write: keepalived ignores a `track_file` on a
+read-only file system with only a warning. The render init container fails on any
+check keepalived would drop, so a broken drain stops the pod instead of passing
+silently.
 
 ### `common.service`
 
