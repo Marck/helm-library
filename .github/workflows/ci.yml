@@ -90,6 +90,12 @@ jobs:
       - name: hostNetwork + tolerations on batch workloads
         run: tests/host-network-batch.sh
 
+      # affinity used to render level with its own key, so YAML read
+      # `affinity: null` plus a stray pod-spec key. Only reading the field back
+      # out of the document shows it; the render itself succeeds.
+      - name: affinity at pod-spec level
+        run: tests/affinity.sh
+
       - name: postgresBackup renders a restorable, watched, secret-fed backup
         run: tests/postgres-backup.sh
 
