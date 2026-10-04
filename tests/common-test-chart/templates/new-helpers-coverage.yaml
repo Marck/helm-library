@@ -427,3 +427,19 @@
        "virtualRouterId" 3
        "nodeSelector" (dict "node-role.kubernetes.io/worker" "worker")
        "image" (dict "repository" "ghcr.io/example/keepalived" "tag" "2.3.1"))) }}
+---
+{{- /* common 0.19.1: affinity rendered at the right depth. Before, the block
+       landed level with `affinity:`, so YAML read `affinity: null` plus a stray
+       pod-spec key. One per long-running helper; tests/affinity.sh reads them. */}}
+{{- $affinity := dict "nodeAffinity" (dict "preferredDuringSchedulingIgnoredDuringExecution" (list (dict
+     "weight" 100
+     "preference" (dict "matchExpressions" (list (dict "key" "node-role.kubernetes.io/worker" "operator" "In" "values" (list "worker")))))))
+-}}
+{{ include "common.deployment" (dict "Root" . "Component" "affinity-deploy"
+     "Config" (dict "affinity" $affinity "image" (dict "repository" "busybox" "tag" "1.36"))) }}
+---
+{{ include "common.statefulset" (dict "Root" . "Component" "affinity-sts"
+     "Config" (dict "affinity" $affinity "image" (dict "repository" "busybox" "tag" "1.36") "service" (dict "port" 80))) }}
+---
+{{ include "common.daemonset" (dict "Root" . "Component" "affinity-ds"
+     "Config" (dict "affinity" $affinity "image" (dict "repository" "busybox" "tag" "1.36"))) }}

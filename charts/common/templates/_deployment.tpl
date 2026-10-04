@@ -282,7 +282,7 @@ spec:
 {{- end }}
 {{- if or $config.affinity $root.Values.affinity }}
       affinity:
-{{ toYaml (default $root.Values.affinity $config.affinity) | indent 6 }}
+{{ toYaml (default $root.Values.affinity $config.affinity) | indent 8 }}
 {{- end }}
 {{- if or $config.tolerations $root.Values.tolerations }}
       tolerations:
