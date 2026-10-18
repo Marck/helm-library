@@ -74,7 +74,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with (default $root.Values.nodeSelector $config.nodeSelector) }}
+      {{- with (include "common.resolvedNodeSelector" (dict "Root" $root "Config" $config) | fromYaml) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}

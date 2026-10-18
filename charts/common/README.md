@@ -107,7 +107,7 @@ Key values fields under `Config`:
 | `hostNetwork` | Set `true` to share the node's network namespace (e.g. for mDNS/multicast, which the pod overlay does not pass) |
 | `dnsPolicy` | DNS policy; defaults to `ClusterFirstWithHostNet` when `hostNetwork` is true, else omitted |
 | `dnsConfig` | Extra resolver settings (`nameservers`/`searches`/`options`). Left on the default `ClusterFirst` policy these nameservers are **appended after** the cluster resolver, so cluster names keep resolving and the entries act purely as a fallback — how an alert-sending workload still reaches its notification host when in-cluster DNS is degraded. Honoured by deployment, statefulset, daemonset and cronjob (which also gained `dnsPolicy` in 0.9.0) |
-| `nodeSelector` | Pod node selector |
+| `nodeSelector` | Pod node selector. An explicitly-set component value wins over `Root.Values.nodeSelector`, **including an empty map, which clears the chart-level pin** so the workload runs anywhere; omit the key to inherit. Same rule on deployment, statefulset, daemonset, job and cronjob since 0.20.0 (before that only the daemonset honoured `{}`, and the rest silently stayed pinned) |
 | `affinity` | Pod affinity rules |
 | `tolerations` | Pod tolerations |
 | `podLabels` | Extra labels merged into the pod template (e.g. to group pods across components under one Service selector) |
@@ -208,7 +208,7 @@ component can move between the two with no value changes. Used for per-node agen
 | `hostNetwork` | Share the host network namespace (sets `dnsPolicy: ClusterFirstWithHostNet`) |
 | `hostPID` | Share the host PID namespace |
 | `ports[].hostPort` | Bind a container port on the node |
-| `nodeSelector` | Honoured when the component sets the key — **an empty map clears the chart-level default** so the DaemonSet lands on every node; omit the key to inherit `Root.Values.nodeSelector` |
+| `nodeSelector` | Honoured when the component sets the key, **an empty map clears the chart-level default** so the DaemonSet lands on every node; omit the key to inherit `Root.Values.nodeSelector`. Shared with the other workload kinds since 0.20.0 |
 
 ### `common.keepalived`
 
@@ -722,7 +722,32 @@ Supports a single configmap or a list. See [CONFIGMAP.md](CONFIGMAP.md) for deta
 
 Parameters: `Root`, `Component`, `Config`
 
-Generates pod annotations with checksums for configMaps and sealedSecrets, so pods restart on config changes. Automatically included by `common.deployment`.
+Generates pod annotations with checksums for configMaps and secrets, so pods roll when
+the content they read at startup changes. Included automatically by `common.deployment`,
+`common.statefulset` and `common.daemonset`. Not by `common.job` or `common.cronjob`, on
+purpose: a batch pod re-reads its Secret on every run, and an annotation on a CronJob pod
+template rolls nothing.
+
+`checksum/configMaps` covers `Root.Values.configMaps` and `Config.configmap`.
+`checksum/secrets` covers `Root.Values.secrets`, **`Root.Values.sealedSecrets`** and
+`Config.sealedSecrets`.
+
+Root-level `sealedSecrets` only landed in 0.20.0. Before that, a chart that declared its
+sealed secrets at the root (the normal shape: `common.sealedsecret (dict "Root" .)`) and
+rendered its workloads with a per-component `Config` matched neither input, so no
+`checksum/secrets` was emitted and a reseal rolled nothing. Env is read once at container
+start, so the pods kept serving the old values while git and ArgoCD both reported Synced.
+
+Per-entry scoping, on `Root.Values.secrets` entries and on sealed-secret entries alike:
+
+| Field | Description |
+| --- | --- |
+| `includeInChecksum` | Default `true`. Set `false` for a Secret nothing reads at startup. An image pull credential is the usual case: it is read at pull time, so rolling its holders on a rotation is pure churn |
+| `includeChecksumInControllers` | Default empty, meaning every component. Give a list of component names to roll only the ones that actually read the Secret |
+
+`templateData` holds ciphertext, and sealed-secrets regenerates it on every seal, so
+resealing an unchanged value also rolls the readers. That is the accepted cost of not
+parsing ciphertext the chart cannot decrypt; resealing is a deliberate act anyway.
 
 ### `common.job`
 

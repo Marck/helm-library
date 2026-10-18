@@ -443,3 +443,81 @@
 ---
 {{ include "common.daemonset" (dict "Root" . "Component" "affinity-ds"
      "Config" (dict "affinity" $affinity "image" (dict "repository" "busybox" "tag" "1.36"))) }}
+---
+{{- /* common 0.20.0: `nodeSelector: {}` CLEARS the chart-level pin instead of
+       inheriting it. Three pairs per workload kind, so each assertion in
+       tests/node-selector-clear.sh has something to compare against:
+         *-ns-clear   explicit empty map  -> no nodeSelector at all
+         *-ns-inherit key absent          -> the chart-level one
+         *-ns-own     own selector        -> its own, chart-level ignored
+       Rendered with --set nodeSelector.tier=chart, or "inherited" proves
+       nothing. The daemonset pair already behaved; it is here so a refactor of
+       the shared helper cannot quietly regress it. */}}
+{{- $img := dict "repository" "busybox" "tag" "1.36" -}}
+{{- $own := dict "node-role.kubernetes.io/control-plane" "true" -}}
+{{ include "common.deployment" (dict "Root" . "Component" "ns-clear-deploy"
+     "Config" (dict "image" $img "nodeSelector" dict)) }}
+---
+{{ include "common.deployment" (dict "Root" . "Component" "ns-inherit-deploy"
+     "Config" (dict "image" $img)) }}
+---
+{{ include "common.deployment" (dict "Root" . "Component" "ns-own-deploy"
+     "Config" (dict "image" $img "nodeSelector" $own)) }}
+---
+{{ include "common.statefulset" (dict "Root" . "Component" "ns-clear-sts"
+     "Config" (dict "image" $img "service" (dict "port" 80) "nodeSelector" dict)) }}
+---
+{{ include "common.statefulset" (dict "Root" . "Component" "ns-inherit-sts"
+     "Config" (dict "image" $img "service" (dict "port" 80))) }}
+---
+{{ include "common.statefulset" (dict "Root" . "Component" "ns-own-sts"
+     "Config" (dict "image" $img "service" (dict "port" 80) "nodeSelector" $own)) }}
+---
+{{ include "common.cronjob" (dict "Root" . "Component" "ns-clear-cron"
+     "Config" (dict "image" $img "schedule" "*/5 * * * *" "nodeSelector" dict)) }}
+---
+{{ include "common.cronjob" (dict "Root" . "Component" "ns-inherit-cron"
+     "Config" (dict "image" $img "schedule" "*/5 * * * *")) }}
+---
+{{ include "common.cronjob" (dict "Root" . "Component" "ns-own-cron"
+     "Config" (dict "image" $img "schedule" "*/5 * * * *" "nodeSelector" $own)) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "ns-clear-job"
+     "Config" (dict "image" $img "command" (list "true") "nodeSelector" dict)) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "ns-inherit-job"
+     "Config" (dict "image" $img "command" (list "true"))) }}
+---
+{{ include "common.job" (dict "Root" . "Component" "ns-own-job"
+     "Config" (dict "image" $img "command" (list "true") "nodeSelector" $own)) }}
+---
+{{ include "common.daemonset" (dict "Root" . "Component" "ns-clear-ds"
+     "Config" (dict "image" $img "nodeSelector" dict)) }}
+---
+{{ include "common.daemonset" (dict "Root" . "Component" "ns-inherit-ds"
+     "Config" (dict "image" $img)) }}
+---
+{{ include "common.daemonset" (dict "Root" . "Component" "ns-own-ds"
+     "Config" (dict "image" $img "nodeSelector" $own)) }}
+---
+{{- /* common 0.20.0: root-level sealedSecrets reach checksum/secrets.
+       These three render with a per-component Config, which is what used to
+       hide the bug: the Config holds no `sealedSecrets` and .Values holds no
+       `secrets`, so nothing was hashed and a reseal rolled nothing.
+       tests/sealed-secret-checksum.sh feeds root sealedSecrets through --set
+       and renders twice. `sealed-pull-only` is named by no entry's
+       includeChecksumInControllers, so it stands in for the pull-credential
+       holder that must NOT roll (wireguard's keepalived VIP). Deployment,
+       StatefulSet and DaemonSet only: a batch pod re-reads the Secret on every
+       run, so common.cronjob and common.job deliberately carry no checksum. */}}
+{{ include "common.deployment" (dict "Root" . "Component" "sealed-app"
+     "Config" (dict "image" $img)) }}
+---
+{{ include "common.statefulset" (dict "Root" . "Component" "sealed-sts"
+     "Config" (dict "image" $img "service" (dict "port" 80))) }}
+---
+{{ include "common.daemonset" (dict "Root" . "Component" "sealed-ds"
+     "Config" (dict "image" $img)) }}
+---
+{{ include "common.deployment" (dict "Root" . "Component" "sealed-pull-only"
+     "Config" (dict "image" $img)) }}

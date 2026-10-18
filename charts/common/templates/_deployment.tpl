@@ -276,9 +276,9 @@ spec:
             claimName: {{ include "common.fullname" $root }}-{{ $comp }}-pvc
       {{- end }}
       {{- end }}
-{{- if or $config.nodeSelector $root.Values.nodeSelector }}
+{{- with (include "common.resolvedNodeSelector" (dict "Root" $root "Config" $config) | fromYaml) }}
       nodeSelector:
-{{ toYaml (default $root.Values.nodeSelector $config.nodeSelector) | indent 8 }}
+{{ toYaml . | indent 8 }}
 {{- end }}
 {{- if or $config.affinity $root.Values.affinity }}
       affinity:

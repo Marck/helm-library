@@ -91,17 +91,57 @@ Returns the value for pod annotations with configmap and secret checksums
       {{- end -}}
     {{- end -}}
   {{- end -}}
-  {{- /* Also check for component-level sealedSecrets */ -}}
-  {{- if $config.sealedSecrets -}}
-    {{- range $secret := $config.sealedSecrets -}}
-      {{- if $secret.enabled -}}
-        {{- $secretIncludeInChecksum := true -}}
-        {{- if hasKey $secret "includeInChecksum" -}}
-          {{- $secretIncludeInChecksum = $secret.includeInChecksum -}}
-        {{- end -}}
-        {{- if $secretIncludeInChecksum -}}
-          {{- $_ := set $secretsFound $secret.name (tpl (toYaml $secret.templateData) $root | sha256sum) -}}
-        {{- end -}}
+  {{- /* Also check sealedSecrets, at the ROOT and at component level.
+
+         Both are collected into one list on purpose. A chart that declares its
+         sealed secrets at the root (`common.sealedsecret (dict "Root" .)`, so
+         `.Values.sealedSecrets`) and then renders its workloads with a
+         per-component Config used to match NEITHER input: `$root.Values` has no
+         `secrets`, and the component dict has no `sealedSecrets`. $secretsFound
+         stayed empty, no checksum/secrets was emitted at all, and a reseal
+         never rolled the pods.
+
+         That drift is real and it is the invisible kind. On 2026-10-16 a
+         resealed peer list and a narrowed AllowedIPs in apps/wireguard were
+         live in git and reported Synced by ArgoCD while the running pods kept
+         serving the old env, because env is read once at container start. They
+         only picked it up after a manual rollout restart.
+
+         When common.annotations is called with no Config, $config IS
+         $root.Values, so the same entries are visited twice. Harmless: each one
+         keys the same name to the same hash and takes the same scoping
+         decision, so the result is identical.
+
+         templateData holds ciphertext, which sealed-secrets regenerates on
+         every seal, so resealing an UNCHANGED value also rolls the pods. That
+         is the accepted cost of not parsing ciphertext we cannot decrypt, and
+         resealing is a deliberate act anyway. */ -}}
+  {{- $sealedEntries := list -}}
+  {{- if kindIs "slice" $root.Values.sealedSecrets -}}
+    {{- $sealedEntries = concat $sealedEntries $root.Values.sealedSecrets -}}
+  {{- end -}}
+  {{- if kindIs "slice" $config.sealedSecrets -}}
+    {{- $sealedEntries = concat $sealedEntries $config.sealedSecrets -}}
+  {{- end -}}
+  {{- if kindIs "map" $root.Values.sealedSecret -}}
+    {{- $sealedEntries = append $sealedEntries $root.Values.sealedSecret -}}
+  {{- end -}}
+  {{- range $secret := $sealedEntries -}}
+    {{- if $secret.enabled -}}
+      {{- $secretIncludeInChecksum := true -}}
+      {{- if hasKey $secret "includeInChecksum" -}}
+        {{- $secretIncludeInChecksum = $secret.includeInChecksum -}}
+      {{- end -}}
+      {{- /* Which controllers get it. An image pull credential, for one, is read
+             at pull time, so rolling its holders on a reseal is pure churn. */ -}}
+      {{- $includeChecksumInControllers := list -}}
+      {{- if hasKey $secret "includeChecksumInControllers" -}}
+        {{- $includeChecksumInControllers = $secret.includeChecksumInControllers -}}
+      {{- end -}}
+      {{- $secretChecksumAddToController := or (empty $includeChecksumInControllers) (has $comp $includeChecksumInControllers) -}}
+      {{- if and $secretIncludeInChecksum $secretChecksumAddToController -}}
+        {{- $key := $secret.name | default (include "common.fullname" $root) -}}
+        {{- $_ := set $secretsFound $key (tpl (toYaml $secret.templateData) $root | sha256sum) -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}
@@ -112,6 +152,34 @@ Returns the value for pod annotations with configmap and secret checksums
   {{- if not (empty $annotations) -}}
     {{- $annotations | toYaml -}}
   {{- end -}}
+{{- end -}}
+
+{{- /*
+  common.resolvedNodeSelector: the nodeSelector a workload should actually get.
+
+  Returns the resolved map as YAML, always a map, so `{}` when there is none.
+  Call sites run it through `fromYaml` and `with`, which skips an empty map:
+
+    {{- with (include "common.resolvedNodeSelector" (dict "Root" $root "Config" $config) | fromYaml) }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+    {{- end }}
+
+  An explicitly-set component nodeSelector wins, INCLUDING an empty map, which
+  means "clear the chart-level pin and run anywhere". `default` and plain
+  truthiness both read `{}` as unset and silently inherit the chart default, so
+  a component that asked to be unpinned stayed pinned: verified 2026-10-16,
+  `nodeSelector: {}` left all four adguard CronJobs on the worker. Only hasKey
+  can tell "set to empty" apart from "not set".
+*/ -}}
+{{- define "common.resolvedNodeSelector" -}}
+{{- $root := .Root -}}
+{{- $config := .Config | default dict -}}
+{{- if hasKey $config "nodeSelector" -}}
+{{- toYaml ($config.nodeSelector | default dict) -}}
+{{- else -}}
+{{- toYaml ($root.Values.nodeSelector | default dict) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "common.nodeSelector" -}}

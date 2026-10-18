@@ -116,3 +116,15 @@ jobs:
       # (SETGID). Each of those rendered fine and failed live on the adguard VIP.
       - name: common.keepalived renders a working VRRP pair
         run: tests/keepalived.sh
+
+      # A root-level sealedSecrets matched neither input of the secret checksum,
+      # so no checksum/secrets was emitted and a reseal rolled nothing. ArgoCD
+      # still reported Synced, so the only symptom was pods serving old env.
+      - name: a reseal rolls the pods that read the secret
+        run: tests/sealed-secret-checksum.sh
+
+      # Only the DaemonSet honoured `nodeSelector: {}` as "clear the chart-level
+      # pin". The rest gated on truthiness, where an empty map is falsy, so a
+      # component that asked to run anywhere stayed pinned to one node.
+      - name: nodeSelector {} clears instead of inheriting
+        run: tests/node-selector-clear.sh

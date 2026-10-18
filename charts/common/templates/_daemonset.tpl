@@ -208,17 +208,13 @@ spec:
       volumes:
 {{ tpl (toYaml $config.volumes) $root | indent 8 }}
       {{- end }}
-{{- /* A DaemonSet usually wants NO nodeSelector (run on every node). Honour an
-       explicitly-set component nodeSelector — even an empty map, which means
-       "clear the inherited default" — otherwise fall back to the chart default. */ -}}
-{{- if hasKey $config "nodeSelector" }}
-{{- if $config.nodeSelector }}
+{{- /* A DaemonSet usually wants NO nodeSelector (run on every node). The
+       resolution rule (an explicitly-set component nodeSelector wins, empty map
+       included) now lives in one helper, shared with the other workload kinds
+       that used to get it wrong. */ -}}
+{{- with (include "common.resolvedNodeSelector" (dict "Root" $root "Config" $config) | fromYaml) }}
       nodeSelector:
-{{ toYaml $config.nodeSelector | indent 8 }}
-{{- end }}
-{{- else if $root.Values.nodeSelector }}
-      nodeSelector:
-{{ toYaml $root.Values.nodeSelector | indent 8 }}
+{{ toYaml . | indent 8 }}
 {{- end }}
 {{- if or $config.affinity $root.Values.affinity }}
       affinity:
