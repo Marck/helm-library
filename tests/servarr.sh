@@ -62,12 +62,44 @@ else
   bad "downloads with no path is refused (wrong message)"
 fi
 
-uv run --quiet --with pyyaml python3 - "$WORK/render.yaml" "$WORK/render-downloads.yaml" "$CHART/values.yaml" <<'PY'
+# Site facts have no default in this chart: a render that is missing one must
+# fail naming the key, never fall back to some baked-in server or domain.
+for key in domain nas.server; do
+  if out="$(helm template x "$CHART" -f "$CHART/ci/example-values.yaml" \
+              --set "global.cluster.$key=null" 2>&1)"; then
+    bad "a render without global.cluster.$key is refused (render succeeded)"
+  elif echo "$out" | grep -q "global.cluster.$key is required"; then
+    ok "a render without global.cluster.$key is refused"
+  else
+    bad "a render without global.cluster.$key is refused (wrong message)"
+  fi
+done
+
+if out="$(helm template x "$CHART" -f "$CHART/ci/example-values.yaml" \
+            --set global.cluster.nas.root=null 2>&1)"; then
+  bad "a relative NAS path without global.cluster.nas.root is refused (render succeeded)"
+elif echo "$out" | grep -q "global.cluster.nas.root is required"; then
+  ok "a relative NAS path without global.cluster.nas.root is refused"
+else
+  bad "a relative NAS path without global.cluster.nas.root is refused (wrong message)"
+fi
+
+# Per-app overrides still win over the site facts, and an absolute path is used
+# as is (no nas.root needed for it).
+helm template sonarr "$CHART" -f "$CHART/ci/example-values.yaml" \
+  --set app.domain=override.test --set app.nfsServer=198.51.100.7 \
+  --set app.configPath=/abs/cfg --set env.TZ=Europe/Paris > "$WORK/render-override.yaml"
+
+uv run --quiet --with pyyaml python3 - "$WORK/render.yaml" "$WORK/render-downloads.yaml" "$CHART/values.yaml" "$CHART/ci/example-values.yaml" "$WORK/render-override.yaml" <<'PY'
 import sys, yaml
 
 docs = {(d["kind"], d["metadata"]["name"]): d
         for d in yaml.safe_load_all(open(sys.argv[1])) if d}
 fails = []
+# The site facts the render was given, so the assertions below are relationships
+# to the input rather than constants copied into the test.
+site = yaml.safe_load(open(sys.argv[4]))["global"]["cluster"]
+domain, nas_server, nas_root = site["domain"], site["nas"]["server"], site["nas"]["root"]
 
 def check(cond, msg):
     print(("ok   " if cond else "FAIL ") + msg)
@@ -99,7 +131,7 @@ for want in ("sonarr-config-pv", "sonarr-config-pvc", "sonarr-media-pv",
              "sonarr-app", "sonarr-ingress", "sonarr-test-connection"):
     check(want in names, f"derived resource {want}")
 ing = docs[("Ingress", "sonarr-ingress")]
-check(ing["spec"]["rules"][0]["host"] == "sonarr.example.com", "the hostname is derived")
+check(ing["spec"]["rules"][0]["host"] == f"sonarr.{domain}", "the hostname is <app.name>.<global.cluster.domain>")
 # No per-app TLS Secret is derived any more. The cluster serves one wildcard
 # certificate through Traefik's default TLSStore, so "<name>-tls" named a Secret
 # nobody creates and Traefik logged an ERROR for every Servarr ingress on each
@@ -110,10 +142,12 @@ check(bool(ing["spec"]["tls"][0].get("hosts")), "the tls block keeps its hosts")
 check("forward-auth" in ing["metadata"]["annotations"]["traefik.ingress.kubernetes.io/router.middlewares"],
       "the UI is behind forward-auth by default")
 pv = docs[("PersistentVolume", "sonarr-config-pv")]
-check(pv["spec"]["nfs"]["path"] == "/export/container_configs/sonarr", "the NFS path is derived")
+check(pv["spec"]["nfs"]["path"] == f"{nas_root}/container_configs/sonarr", "the NFS path hangs off global.cluster.nas.root")
+check(pv["spec"]["nfs"]["server"] == nas_server, "the NFS server is global.cluster.nas.server")
 check(pv["spec"]["mountOptions"] == ["nolock"], "the config mount keeps nolock")
 env = {e["name"]: e["value"] for e in docs[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]["containers"][0]["env"]}
 check(env["PUID"] == "24" and env["PGID"] == "100", "PUID/PGID are derived from app.uid")
+check(env.get("TZ") == site["timezone"], "TZ is global.cluster.timezone")
 probe = docs[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]["containers"][0]["livenessProbe"]
 check(probe["httpGet"]["path"] == "/", "probes hit /, never /ping (it queries SQLite)")
 
@@ -149,11 +183,11 @@ check(m.get("readOnly") is not True,
       "the downloads mount is read-write: the import moves the file out")
 
 pv = dl[("PersistentVolume", "sonarr-downloads-pv")]
-check(pv["spec"]["nfs"]["path"] == "/export/downloads",
-      "the downloads NFS path is derived from app.downloadsPath")
+check(pv["spec"]["nfs"]["path"] == f"{nas_root}/{vals['app']['downloadsPath']}",
+      "the downloads NFS path is app.downloadsPath under global.cluster.nas.root")
 # The export root plus the subPath must be the real directory on the NAS, or the
 # kubelet silently creates an empty one and the import still finds nothing.
-check(f"{pv['spec']['nfs']['path']}/{m.get('subPath')}" == "/export/downloads/automated/sonarr",
+check(f"{pv['spec']['nfs']['path']}/{m.get('subPath')}" == f"{nas_root}/{vals['app']['downloadsPath']}/{tree}/sonarr",
       "export + subPath is the directory that exists on the NAS")
 check(pv["spec"]["accessModes"] == ["ReadWriteMany"],
       "the downloads tree is RWM: the client writes while the importer reads")
@@ -172,6 +206,17 @@ check(pv["spec"]["capacity"]["storage"]
 # importer reads them only through supplementalGroups.
 check(dlpod["securityContext"].get("supplementalGroups") == [100],
       "an importer carries the shared NAS group, so it can read what it did not write")
+
+# ── Per-app overrides beat the site facts ───────────────────────────────────
+ov = {(d["kind"], d["metadata"]["name"]): d
+      for d in yaml.safe_load_all(open(sys.argv[5])) if d}
+check(ov[("Ingress", "sonarr-ingress")]["spec"]["rules"][0]["host"] == "sonarr.override.test",
+      "app.domain overrides global.cluster.domain")
+ovpv = ov[("PersistentVolume", "sonarr-config-pv")]["spec"]["nfs"]
+check(ovpv["server"] == "198.51.100.7", "app.nfsServer overrides global.cluster.nas.server")
+check(ovpv["path"] == "/abs/cfg/sonarr", "an absolute app.configPath is used as is")
+ovenv = {e["name"]: e["value"] for e in ov[("Deployment", "sonarr-app")]["spec"]["template"]["spec"]["containers"][0]["env"]}
+check(ovenv.get("TZ") == "Europe/Paris", "an app's own env.TZ beats global.cluster.timezone")
 
 sys.exit(1 if fails else 0)
 PY

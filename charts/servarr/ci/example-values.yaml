@@ -9,3 +9,13 @@ app:
 image:
   repository: ghcr.io/linuxserver/sonarr
   tag: "4.0.19"
+
+# Site facts, as a consuming repo's cluster values provide them. Documentation
+# addresses only (RFC 2606 / RFC 5737): nothing here is a real site.
+global:
+  cluster:
+    domain: example.com
+    timezone: Etc/UTC
+    nas:
+      server: 192.0.2.20
+      root: /export

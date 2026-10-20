@@ -36,11 +36,33 @@ servarr:
     tag: "4.0.19"
 ```
 
-Everything else is derived: `sonarr-config-pv(c)`, `/export/container_configs/sonarr`,
-`sonarr.example.com`, `sonarr-tls`, `PUID`/`PGID`, the probe ports, the gatus
+Everything else is derived: `sonarr-config-pv(c)`, `<nas.root>/container_configs/sonarr`,
+`sonarr.<domain>`, `PUID`/`PGID`, the probe ports, the gatus
 endpoint, and the `set-external-auth` init container. Anything derived can be
 overridden — the app's own values are merged last and win, which is how Radarr
 keeps its node-local `/config` and Prowlarr keeps its legacy volume names.
+
+## Site facts: `global.cluster`
+
+The chart holds no domain, NFS server, NAS path or timezone of its own. It reads
+them from `global.cluster`, which the consuming repo sets once for every app (a
+subchart sees only its own block plus `global`, so the parent's `.Values.cluster`
+is out of reach):
+
+```yaml
+# the consuming repo's cluster values, merged into every app
+global:
+  cluster:
+    domain: example.com     # hostname <app.name>.<domain>
+    timezone: Etc/UTC       # TZ; Etc/UTC when unset
+    nas:
+      server: 192.0.2.20    # NFS server behind every volume
+      root: /export         # app.configPath/mediaPath/downloadsPath hang off it
+```
+
+A render without `domain` or `nas.server` fails with a message naming the key,
+rather than mounting a guessed server. `app.domain` and `app.nfsServer` still
+override one app, and an absolute `app.*Path` is used as is.
 
 `networkPolicies` and `podSecurity` stay at the TOP level of the app's
 `values.yaml`: they are read by the namespace-security chart, which reads that
@@ -87,7 +109,7 @@ A Remote Path Mapping inside the app is not a substitute; it can only redirect
 one path to another the app can already reach.
 
 `subPath` rather than the whole export so a pod cannot see the other apps'
-downloads, and so hand-added torrents in `/export/downloads/manual` stay outside
+downloads, and so hand-added torrents in `<nas.root>/downloads/manual` stay outside
 every app's mount. Read-write, because the import moves the file out.
 
 This is a separate NFS export from the media tree, which has two consequences.

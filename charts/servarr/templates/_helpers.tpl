@@ -14,12 +14,29 @@ how radarr keeps its node-local /config and its extra init container.
        Servarr ingress on every config reload. common 0.14.0 makes secretName
        opt-in, and an app that genuinely owns a certificate can still pass
        ingress.tlsSecretName through its own values. */ -}}
+{{- /* An NAS path from values: absolute is used as is, relative hangs off
+       global.cluster.nas.root. Required only when a relative path needs it. */ -}}
+{{- define "servarr.nasPath" -}}
+{{- if hasPrefix "/" .path -}}
+{{- .path -}}
+{{- else -}}
+{{- printf "%s/%s" (.root | required "servarr: global.cluster.nas.root is required for a relative NAS path (set it in the consuming repo's cluster values, or give an absolute app.*Path)" | trimSuffix "/") .path -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "servarr.values" -}}
 {{- $v := .Values -}}
 {{- $app := $v.app | default dict -}}
 {{- $name := $app.name | required "servarr: app.name is required (it names every resource, the NFS directory and the hostname)" -}}
 {{- $uid := $app.uid | required "servarr: app.uid is required — unique per app, so a squashed NFS write cannot land as another app's user" | int -}}
 {{- $port := $app.port | required "servarr: app.port is required" | int -}}
+{{- /* Site facts: global.cluster from the consuming repo, never a default here.
+       A subchart sees only its own block plus `global`, hence global.cluster
+       rather than the parent's .Values.cluster. */ -}}
+{{- $cluster := (($v.global).cluster) | default dict -}}
+{{- $nas := $cluster.nas | default dict -}}
+{{- $domain := $app.domain | default $cluster.domain | required "servarr: global.cluster.domain is required (the hostname is <app.name>.<domain>); set it in the consuming repo's cluster values" -}}
+{{- $nfsServer := $app.nfsServer | default $nas.server | required "servarr: global.cluster.nas.server is required (the NFS server behind every volume); set it in the consuming repo's cluster values" -}}
 {{- $gid := $app.gid | default 100 | int -}}
 {{- $title := $app.title | default ($name | title) -}}
 {{- $probe := dict "path" "/" "port" $port -}}
@@ -33,7 +50,7 @@ how radarr keeps its node-local /config and its extra init container.
       "size" ($v.config).size
       "accessModes" (list "ReadWriteOnce")
       "mountOptions" ($v.config).mountOptions
-      "nfs" (dict "server" $app.nfsServer "path" (printf "%s/%s" $app.configPath $name))) -}}
+      "nfs" (dict "server" $nfsServer "path" (printf "%s/%s" (include "servarr.nasPath" (dict "root" $nas.root "path" $app.configPath)) $name))) -}}
 {{- /* The media tree is ReadWriteMany: shared with the download client and the
        other Servarr apps, so several writers hold it at once. */ -}}
 {{- if ($v.media).enabled -}}
@@ -46,7 +63,7 @@ how radarr keeps its node-local /config and its extra init container.
       "storageClassName" (printf "%s-media" $name)
       "size" $v.media.size
       "accessModes" (list "ReadWriteMany")
-      "nfs" (dict "server" $app.nfsServer "path" $app.mediaPath)) -}}
+      "nfs" (dict "server" $nfsServer "path" (include "servarr.nasPath" (dict "root" $nas.root "path" $app.mediaPath)))) -}}
 {{- end -}}
 {{- /* The completed-downloads tree, for the apps that import from it. Also
        ReadWriteMany: the download client writes here while the importer reads
@@ -75,9 +92,9 @@ how radarr keeps its node-local /config and its extra init container.
       "storageClassName" (printf "%s-downloads" $name)
       "size" $v.downloads.size
       "accessModes" (list "ReadWriteMany")
-      "nfs" (dict "server" $app.nfsServer "path" ($app.downloadsPath | required "servarr: app.downloadsPath is required when downloads.enabled"))) -}}
+      "nfs" (dict "server" $nfsServer "path" (include "servarr.nasPath" (dict "root" $nas.root "path" ($app.downloadsPath | required "servarr: app.downloadsPath is required when downloads.enabled"))))) -}}
 {{- end -}}
-{{- $host := printf "%s.%s" $name $app.domain -}}
+{{- $host := printf "%s.%s" $name $domain -}}
 {{- /* supplementalGroups: the shared NAS group only matters to the apps that
        mount a shared NFS tree. Prowlarr talks to indexers and never touches
        one, so it does not carry the group. The downloads tree needs it for the
@@ -91,7 +108,7 @@ how radarr keeps its node-local /config and its extra init container.
          "fsGroupChangePolicy" "OnRootMismatch"
          "seccompProfile" (dict "type" "RuntimeDefault"))
        (ternary (dict "supplementalGroups" (list $gid)) dict (or (($v.media).enabled | default false) (($v.downloads).enabled | default false))))
-    "env" (dict "PUID" (printf "%d" $uid) "PGID" (printf "%d" $gid))
+    "env" (dict "PUID" (printf "%d" $uid) "PGID" (printf "%d" $gid) "TZ" ($cluster.timezone | default "Etc/UTC"))
     "service" (dict "type" "ClusterIP" "port" $port "portName" "http" "targetPort" "http")
     "ingress" (dict
        "annotations" (dict "gatus.home-operations.com/endpoint" (printf "name: %s\ngroup: %s\nclient: { timeout: 30s }\nconditions: [\"[STATUS] < 500\"]\nalerts: [{ type: pushover }]\n" $title $app.gatusGroup))

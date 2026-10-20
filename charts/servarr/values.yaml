@@ -8,11 +8,20 @@ app:
   # port: 8989             # the app's HTTP port
   # title: Sonarr          # shown in gatus; defaults to a capitalised name
   gid: 100                 # the shared NAS group
-  domain: example.com
-  nfsServer: 192.0.2.20
-  configPath: /export/container_configs   # <configPath>/<name> is this app's dir
-  mediaPath: /export/media
-  downloadsPath: /export/downloads
+  # Site facts are deliberately NOT defaulted here. They come from the consuming
+  # repo's cluster values under `global.cluster`, the only parent values a
+  # subchart can see:
+  #   global.cluster.domain      the hostname is <app.name>.<domain>
+  #   global.cluster.nas.server  the NFS server behind every volume
+  #   global.cluster.nas.root    the export root the paths below hang off
+  #   global.cluster.timezone    TZ (Etc/UTC when unset)
+  # A render without domain or nas.server fails rather than guess. Set
+  # app.domain / app.nfsServer only to override one app.
+  #
+  # Relative to global.cluster.nas.root; an absolute path is used as is.
+  configPath: container_configs   # <configPath>/<name> is this app's dir
+  mediaPath: media
+  downloadsPath: downloads
   gatusGroup: media
 
 # Whether this app mounts the shared media tree. Prowlarr does not — it only
@@ -29,7 +38,7 @@ media:
 # presents is the reason this block exists.
 #
 # Each automated app has its own directory on the NAS under
-# /export/downloads/automated/<app>, and its download client is configured with
+# <nas.root>/downloads/automated/<app>, and its download client is configured with
 # that directory as an explicit Directory. Transmission then reports THAT
 # absolute path back over its API, and the app resolves the string it is handed
 # rather than translating it. Sonarr, Radarr and Lidarr had no downloads mount
@@ -57,8 +66,8 @@ downloads:
   root: /downloads
   # The shared tree the automated apps write into, relative to the export root.
   # It is also the subPath prefix, so it must match the directory layout on the
-  # NAS: /export/downloads/automated/{sonarr,radarr,lidarr,aerofoil}.
-  # Hand-added torrents live in /export/downloads/manual and are deliberately
+  # NAS: <nas.root>/downloads/automated/{sonarr,radarr,lidarr,aerofoil}.
+  # Hand-added torrents live in <nas.root>/downloads/manual and are deliberately
   # outside every app's mount.
   tree: automated
   # Only a claim-matching number: an NFS PV is not thin-provisioned and the
@@ -81,8 +90,8 @@ strategy: Recreate
 securityContext:
   allowPrivilegeEscalation: false
 
-env:
-  TZ: Etc/UTC
+# TZ is derived from global.cluster.timezone; an app's own env.TZ still wins.
+env: {}
 
 resources:
   requests:
