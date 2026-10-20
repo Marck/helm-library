@@ -1,0 +1,507 @@
+apiVersion: v1
+entries:
+  common:
+  - apiVersion: v2
+    created: '2026-10-18T06:21:06.713681285Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 91550c773b5995bd0d7e9f5b22f51993554b7e57cd11b5f8a10f78b06a471e26
+    name: common
+    type: library
+    urls:
+    - common-0.20.0.tgz
+    version: 0.20.0
+  - apiVersion: v2
+    created: '2026-10-04T00:17:23.149995528Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 7cc2278a90fc5a651cd9a25457af9f502ec96e679a46e7d0ff41bea9410ae028
+    name: common
+    type: library
+    urls:
+    - common-0.19.1.tgz
+    version: 0.19.1
+  - apiVersion: v2
+    created: '2026-10-02T17:07:58.863665105Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 00057d44e8fedf3aef1b281df84e01e1a5a6a5087dbc6619cfa807c92f70ac2c
+    name: common
+    type: library
+    urls:
+    - common-0.19.0.tgz
+    version: 0.19.0
+  - apiVersion: v2
+    created: '2026-10-02T12:24:00.763269155Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 1de63abfa77712c0e75c27706290da3a1da334578f8a39cb1f5719d365b9bb7e
+    name: common
+    type: library
+    urls:
+    - common-0.18.0.tgz
+    version: 0.18.0
+  - apiVersion: v2
+    created: '2026-10-01T17:30:13.888814899Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 3d56e38c8dda32ebbeaca5212a8e16a3e889bd6a4ac267666cb4da466207a8a6
+    name: common
+    type: library
+    urls:
+    - common-0.17.0.tgz
+    version: 0.17.0
+  - apiVersion: v2
+    created: '2026-09-22T06:38:43.722106348Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: a7fba66a5ed1f1b4d4f42c3aaa596a2c08bb47425de871be552023cb3c4b4d09
+    name: common
+    type: library
+    urls:
+    - common-0.16.0.tgz
+    version: 0.16.0
+  - apiVersion: v2
+    created: '2026-09-17T13:14:49.165153818Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 48f8cad7913f85b8a13d75327d5ced09513b05e5c5efdbdab85acdbf873e9468
+    name: common
+    type: library
+    urls:
+    - common-0.15.2.tgz
+    version: 0.15.2
+  - apiVersion: v2
+    created: '2026-09-17T09:36:01.550307913Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: abb67fc70b27b0e54b3ec25e06311bc24ec9624af96876782d4ea2b98a8e24dd
+    name: common
+    type: library
+    urls:
+    - common-0.15.1.tgz
+    version: 0.15.1
+  - apiVersion: v2
+    created: '2026-09-17T09:12:29.448402066Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 67c4627771f9daacac9c2163ab096423016480d830978d271966a95070c19ac7
+    name: common
+    type: library
+    urls:
+    - common-0.15.0.tgz
+    version: 0.15.0
+  - apiVersion: v2
+    created: '2026-09-13T12:28:54.603212146Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 15769eec983b708dc7dc745692eff79718e8dace47367cacf286b4a09685d783
+    name: common
+    type: library
+    urls:
+    - common-0.14.0.tgz
+    version: 0.14.0
+  - apiVersion: v2
+    created: '2026-09-12T10:39:05.421845754Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: ed949d5ac53427164a0b74ec599423f719e38acf771cf2ee86ebe59b74153adb
+    name: common
+    type: library
+    urls:
+    - common-0.13.0.tgz
+    version: 0.13.0
+  - apiVersion: v2
+    created: '2026-09-11T09:11:52.845170373Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 79318946f944f2c7c673b5abda33927df68b690f7be57d9973a309add3d80a26
+    name: common
+    type: library
+    urls:
+    - common-0.12.0.tgz
+    version: 0.12.0
+  - apiVersion: v2
+    created: '2026-09-09T21:11:11.924483061Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: cf2d51ce509d083f90bd5f0f7de07046b60ea587bbc28ba8d1ba090b90662953
+    name: common
+    type: library
+    urls:
+    - common-0.11.0.tgz
+    version: 0.11.0
+  - apiVersion: v2
+    created: '2026-08-26T08:32:00.183751908Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 31da4a9aa556b22841f7f156a75cabfd92c8bc9c6fc97ab5d1ca6197b649d7f5
+    name: common
+    type: library
+    urls:
+    - common-0.10.0.tgz
+    version: 0.10.0
+  - apiVersion: v2
+    created: '2026-08-25T05:20:27.702863589Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: ef013d4790a25bfcc1dc01269998ce6425ab3109103beb5c37e63bdb46f0b7e9
+    name: common
+    type: library
+    urls:
+    - common-0.9.0.tgz
+    version: 0.9.0
+  - apiVersion: v2
+    created: '2026-08-23T13:45:02.022716454Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 1d4711956be804c830fad91010d4e1fa360f9fde3ae2dc59728961bb0f74beca
+    name: common
+    type: library
+    urls:
+    - common-0.8.0.tgz
+    version: 0.8.0
+  - apiVersion: v2
+    created: '2026-08-23T10:15:17.260441807Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: b6a535ce6af6b1728ae0406ffb0a483482def70845b6f151ebd04acac8ae3d19
+    name: common
+    type: library
+    urls:
+    - common-0.7.3.tgz
+    version: 0.7.3
+  - apiVersion: v2
+    created: '2026-08-18T08:29:26.592800166Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 6924c45e741fb9f4c4ad02c0e0ff248e041d384e41d4dcd73d41dd0f45cea57a
+    name: common
+    type: library
+    urls:
+    - common-0.7.2.tgz
+    version: 0.7.2
+  - apiVersion: v2
+    created: '2026-08-16T20:27:36.741699267Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 7afb74344e5bef3f53a93cd4331b3300c8e8d1ad6b6ae4343818aa383133aa9d
+    name: common
+    type: library
+    urls:
+    - common-0.7.1.tgz
+    version: 0.7.1
+  - apiVersion: v2
+    created: '2026-08-14T13:44:52.093935453Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 396cfcf0d20976e196f348bb2f439b9e19892058ca2b7cfe17643bc8b181e263
+    name: common
+    type: library
+    urls:
+    - common-0.7.0.tgz
+    version: 0.7.0
+  - apiVersion: v2
+    created: '2026-08-03T14:55:53.26996667Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: d10a62c9f97e1d1b68d7d9130839311feb876a2cc9e77292c27868ea208d3bc6
+    name: common
+    type: library
+    urls:
+    - common-0.6.2.tgz
+    version: 0.6.2
+  - apiVersion: v2
+    created: '2026-07-27T15:17:21.050062553Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 030deb680af13807f1e79a36a3d1aed05bb824deef5419371f1a69efdc65cd86
+    name: common
+    type: library
+    urls:
+    - common-0.6.1.tgz
+    version: 0.6.1
+  - apiVersion: v2
+    created: '2026-07-26T18:19:25.703868023Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 0b9cb137a41197872e2b02f59140c72ad20f7753c9b6868de4a675b76a372fb6
+    name: common
+    type: library
+    urls:
+    - common-0.6.0.tgz
+    version: 0.6.0
+  - apiVersion: v2
+    created: '2026-07-24T19:37:27.432577494Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 823f24c4aa7017c6c5776266d75164c2e9f425b7b2ceccf250df0802ed4f3e21
+    name: common
+    type: library
+    urls:
+    - common-0.5.10.tgz
+    version: 0.5.10
+  - apiVersion: v2
+    created: '2026-07-23T10:02:06.584904958Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: b9af39774f2ba66008fa5683e34c0133327f587339666020ff01e61d17d739b0
+    name: common
+    type: library
+    urls:
+    - common-0.5.9.tgz
+    version: 0.5.9
+  - apiVersion: v2
+    created: '2026-07-23T08:53:10.734196839Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: ec677983f99c8aa4c1068e2a33c5230f1ade069eed74b885692c304cc9ebf5a8
+    name: common
+    type: library
+    urls:
+    - common-0.5.8.tgz
+    version: 0.5.8
+  - apiVersion: v2
+    created: '2026-07-20T11:59:53.624651521Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 0c42a36791793bbcae329087bfb0dd3fdb6b04274e3128b4241e37087e9b039f
+    name: common
+    type: library
+    urls:
+    - common-0.5.7.tgz
+    version: 0.5.7
+  - apiVersion: v2
+    created: '2026-07-16T14:44:35.457569995Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: d0c8dc0d02f4c3af12d2d50f6670c0d587401f19103580cde2fe3bd6bbf3c4cb
+    name: common
+    type: library
+    urls:
+    - common-0.5.6.tgz
+    version: 0.5.6
+  - apiVersion: v2
+    created: '2026-07-16T13:51:19.503924905Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 08e4ff8def00b24cb275d38f2ac4f6060633697b09f7003b80354fe1ac8bdd84
+    name: common
+    type: library
+    urls:
+    - common-0.5.5.tgz
+    version: 0.5.5
+  - apiVersion: v2
+    created: '2026-07-15T07:47:50.613121214Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 71662d37919d1540559c77fcf5f62b5f50e2fd3e342a93d18effe2815bd13298
+    name: common
+    type: library
+    urls:
+    - common-0.5.4.tgz
+    version: 0.5.4
+  - apiVersion: v2
+    created: '2026-07-14T19:08:25.800266037Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: b872d41c08cbd1d8757dac7cf46dac3bc59460c3e9390876ffbabca4d5333d3b
+    name: common
+    type: library
+    urls:
+    - common-0.5.3.tgz
+    version: 0.5.3
+  - apiVersion: v2
+    created: '2026-07-13T12:24:01.956287539Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: e3ead246e06231b89d561ad8a5dd03f9783dc57f802a495a750d017e835c536d
+    name: common
+    type: library
+    urls:
+    - common-0.5.2.tgz
+    version: 0.5.2
+  - apiVersion: v2
+    created: '2026-07-12T20:49:54.286913927Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 3798a4dbdd875eb8321acb57dcc9b34c02d7fa27f122d65d389215b0817effd0
+    name: common
+    type: library
+    urls:
+    - common-0.5.1.tgz
+    version: 0.5.1
+  - apiVersion: v2
+    created: '2026-07-03T10:52:08.009309856Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: f5e1322afbbe7cb44931aa85ea92faf760fea5d2a325a70fa239268055f91739
+    name: common
+    type: library
+    urls:
+    - common-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
+    created: '2026-06-20T08:39:16.186941198Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: d6e4188af15e583026760ac271882fbf2bb3f9aa722b1957dbb38f6d1a194050
+    name: common
+    type: library
+    urls:
+    - common-0.4.4.tgz
+    version: 0.4.4
+  - apiVersion: v2
+    created: '2026-06-16T12:24:21.429298839Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 9e6cefcd5b7ef34829d4babb5c2f6b4f66c65e730b3868d0aecbacc236a63ffd
+    name: common
+    type: library
+    urls:
+    - common-0.4.3.tgz
+    version: 0.4.3
+  - apiVersion: v2
+    created: '2026-06-03T09:53:01.151177269Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 2ee3b61c38b49bfb8a755997046306000a0c014e494035958fafc7f4a724ceec
+    name: common
+    type: library
+    urls:
+    - common-0.4.2.tgz
+    version: 0.4.2
+  - apiVersion: v2
+    created: '2026-05-29T11:34:34.908311935Z'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: cdf661d0555e59bbd186c81fe1ff68f94dd0c7e40743c708689488601899dc39
+    name: common
+    type: library
+    urls:
+    - common-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
+    created: '2026-05-27T21:31:26.712062+02:00'
+    description: Library chart providing reusable PV/PVC templates with NFS support
+      and nodeSelector configuration
+    digest: 5378e0f2a7123c6a9d021509c4207193056d90877c6937ef5d2f60f2c6b2a56d
+    name: common
+    type: library
+    urls:
+    - https://Marck.github.io/helm-library/common-0.3.0.tgz
+    version: 0.3.0
+  servarr:
+  - apiVersion: v2
+    created: '2026-10-20T08:55:47.391928108Z'
+    dependencies:
+    - name: common
+      repository: https://Marck.github.io/helm-library
+      version: 0.20.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: ec22d69e0aea52df3ca36210b5282e780e0873abe68a5af4bc30b9a5904406bd
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.6.0.tgz
+    version: 0.6.0
+  - apiVersion: v2
+    created: '2026-09-23T06:34:28.888023329Z'
+    dependencies:
+    - name: common
+      repository: https://Marck.github.io/helm-library
+      version: 0.14.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: 67e86648336ae8254ae78a93adcc89b4f195c817db8be914f1f8f357fd50b65c
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
+    created: '2026-09-21T08:18:48.463394603Z'
+    dependencies:
+    - name: common
+      repository: https://Marck.github.io/helm-library
+      version: 0.14.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: 34bca69849141471188a5560dcc5fe546f2ce3f0ac54fb55bf505077dcac1c05
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
+    created: '2026-09-13T12:35:06.771589171Z'
+    dependencies:
+    - name: common
+      repository: https://Marck.github.io/helm-library
+      version: 0.14.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: 1adf37df17c8d4faddf6e3b2b41ed8a5cdc2a0cc5fd99f9f5d0ce22da177b0cb
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    created: '2026-09-11T09:11:53.009265029Z'
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.12.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: 80d39e571a78e62cd94b8e2bb139f2c60f5d25136097b1c0a7c198d728c0efe5
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
+    created: '2026-09-09T21:11:12.135212863Z'
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.11.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: 7f02cf82bd37370b72060d06804fbe79db94792bea796557b57cf0c34a32ae9f
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v2
+    created: '2026-08-25T05:20:27.882073656Z'
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.9.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: d9edc27587f372374d2773a419a21d39cb3b4b507b9c5b1475a29d8ef91ddfb8
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    created: '2026-08-23T13:45:02.131571721Z'
+    dependencies:
+    - name: common
+      repository: file://../common
+      version: 0.8.0
+    description: "The shared chart behind Sonarr, Radarr, Lidarr and Prowlarr \u2014\
+      \ one implementation of the shape all four had a copy of"
+    digest: fe210ce51b8912531f2beb4351efaaf47a7f003b7352315f603857481f8ef6f9
+    name: servarr
+    type: application
+    urls:
+    - servarr-0.1.0.tgz
+    version: 0.1.0
+generated: '2026-10-20T09:11:07.401826+00:00'
