@@ -128,3 +128,9 @@ jobs:
       # component that asked to run anywhere stayed pinned to one node.
       - name: nodeSelector {} clears instead of inheriting
         run: tests/node-selector-clear.sh
+
+      # A PV may omit nfs.server and take global.cluster.nas.server. Only reading
+      # the server back out of each PV shows that an explicit value still wins and
+      # that a missing one fails the render instead of emitting an empty server.
+      - name: nfs.server falls back to global.cluster.nas.server
+        run: tests/nfs-server-fallback.sh

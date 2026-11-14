@@ -96,6 +96,7 @@ Key values fields under `Config`:
 | `volumes` | List of volumes (raw YAML, supports `tpl`) |
 | `initContainers` | List of init containers (raw YAML). Honoured by deployment, statefulset, daemonset, job and cronjob |
 | `persistenceVolumes.<name>.pvCapacity` | PV capacity when it differs from the claim's `size` (both paths support it; a bound PV's capacity cannot be changed) |
+| `persistenceVolumes.<name>.nfs.server` | NFS server for that PV. Optional: falls back to `global.cluster.nas.server` (the consuming repo's cluster values); the render fails if neither is set |
 | `ensureOwnership` | Chown a mounted directory to the uid the workload runs as, before it starts — see [below](#ensureownership) |
 | `waitFor` | Hold the pod at Init until a dependency answers on its port — see [below](#waitfor) |
 | `additionalContainers` | List of extra sidecar containers appended to the pod (raw YAML) |
@@ -444,7 +445,7 @@ Renders a PersistentVolume when either `persistence.nfs` or `persistence.hostPat
 | `persistence.size` | Used for PVC request and PV capacity if `pvCapacity` not set |
 | `persistence.accessModes` | List of access modes |
 | `persistence.reclaimPolicy` | `Retain`, `Delete`, etc. |
-| `persistence.nfs.server` | NFS server address |
+| `persistence.nfs.server` | NFS server address. Optional: falls back to `global.cluster.nas.server`; the render fails if neither is set |
 | `persistence.nfs.path` | NFS export path |
 | `persistence.hostPath.path` | Host filesystem path |
 | `persistence.hostPath.type` | Optional: `Directory`, `File`, `DirectoryOrCreate`, etc. |
