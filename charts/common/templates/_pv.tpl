@@ -2,6 +2,11 @@
 {{- $root := .Root }}
 {{- $comp := .Component | default "app" }}
 {{- $config := .Config | default $root.Values }}
+{{- /* nfs.server may be omitted: the PV then uses global.cluster.nas.server, the
+       consuming repo's one record of its NAS (`global` reaches subcharts too). An
+       explicit value still wins. With neither set the render fails here instead of
+       emitting a PV the API server rejects at sync time. */ -}}
+{{- $nasServer := (((($root.Values.global).cluster).nas).server) }}
 
 {{- /* Support for multiple PVs via persistenceVolumes */ -}}
 {{- if $config.persistenceVolumes }}
@@ -33,7 +38,7 @@ spec:
   {{- end }}
   {{- if $pv.nfs}}
   nfs:
-    server: {{ $pv.nfs.server }}
+    server: {{ $pv.nfs.server | default $nasServer | required (printf "persistenceVolumes.%s.nfs.server is required (or set global.cluster.nas.server)" $name) }}
     path: {{ $pv.nfs.path }}
   {{- end }}
   {{- if $pv.hostPath}}
@@ -90,7 +95,7 @@ spec:
   {{- end }}
   {{- if $persistence.nfs }}
   nfs:
-    server: {{ $persistence.nfs.server }}
+    server: {{ $persistence.nfs.server | default $nasServer | required "persistence.nfs.server is required (or set global.cluster.nas.server)" }}
     path: {{ $persistence.nfs.path }}
   {{- else if $persistence.hostPath }}
   hostPath:
