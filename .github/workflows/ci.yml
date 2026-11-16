@@ -105,6 +105,11 @@ jobs:
       - name: Ingress TLS secretName is opt-in
         run: tests/ingress-tls.sh
 
+      # Match rules and regular expressions pass through YAML, a template and
+      # `tpl`. One altered character still renders and then matches nothing.
+      - name: Traefik middlewares and routes pass through unchanged
+        run: tests/traefik-routes.sh
+
       # A tag is a moving pointer, and some upstreams ship only `latest`. This
       # asserts image.digest reaches every workload kind, and that a chart which
       # sets no digest renders exactly as before.
