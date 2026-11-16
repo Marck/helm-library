@@ -1,0 +1,6 @@
+{{- /*
+  Coverage for common.middlewares and common.ingressRoutes (common 0.22.0).
+  Both render nothing unless values define them; tests/traefik-routes.sh does.
+*/ -}}
+{{ include "common.middlewares" (dict "Root" .) }}
+{{ include "common.ingressRoutes" (dict "Root" .) }}

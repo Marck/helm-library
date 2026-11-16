@@ -719,6 +719,54 @@ Parameters: `Root`
 
 Supports a single configmap or a list. See [CONFIGMAP.md](CONFIGMAP.md) for details.
 
+### `common.middlewares` and `common.ingressRoutes`
+
+Parameters: `Root`
+
+Traefik `Middleware` and `IngressRoute` resources (API group `traefik.io`), for
+what a Kubernetes Ingress cannot express: a middleware of the chart's own, or a
+route matched on a header, a query parameter or with a priority. Since 0.22.0.
+
+Each reads a map keyed by a name of your choosing and renders one resource per
+enabled entry, named by `name` or else by the key. A chart that defines neither
+map renders nothing extra.
+
+```yaml
+middlewares:
+  addPrefix:
+    enabled: true
+    name: add-prefix            # optional, defaults to the key
+    spec:                       # required: the Middleware spec, verbatim
+      addPrefix:
+        prefix: /api
+
+ingressRoutes:
+  oldClients:
+    enabled: true
+    entryPoints: [websecure]    # optional
+    routes:                     # required: the routes, verbatim
+      - kind: Rule
+        match: Host(`app.{{ .Values.cluster.domain }}`) && HeaderRegexp(`User-Agent`, `OldClient`)
+        priority: 1000
+        middlewares:
+          - name: add-prefix
+        services:
+          - name: app
+            port: 80
+    tls: {}                     # optional: {} asks for the default certificate
+```
+
+```yaml
+{{ include "common.middlewares" (dict "Root" .) }}
+{{ include "common.ingressRoutes" (dict "Root" .) }}
+```
+
+`spec`, `routes` and `tls` are rendered through `tpl`, so a string may refer to
+another value. Everything else in them reaches the cluster unchanged, which
+`tests/traefik-routes.sh` asserts for rules with backticks, backslashes and
+`${1}`. Reference a middleware from an Ingress as
+`<namespace>-<name>@kubernetescrd`.
+
 ### `common.annotations`
 
 Parameters: `Root`, `Component`, `Config`
