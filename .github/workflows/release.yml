@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -55,7 +55,7 @@ jobs:
             helm dependency update "$chart"
           done
 
-      - uses: helm/chart-releaser-action@v1.9.0
+      - uses: helm/chart-releaser-action@92c6b97fa9f664492a2592e0d1d80bc6bf378957 # v1.9.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
