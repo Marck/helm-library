@@ -17,6 +17,14 @@ metadata:
   {{- end }}
 spec:
   type: {{ $config.service.type | default "ClusterIP" }}
+  {{- /* clusterIP "None" makes a headless Service: DNS returns the pod
+         addresses themselves, for a client that must reach one exact pod. */}}
+  {{- with $config.service.clusterIP }}
+  clusterIP: {{ . | quote }}
+  {{- end }}
+  {{- with $config.service.publishNotReadyAddresses }}
+  publishNotReadyAddresses: {{ . }}
+  {{- end }}
   {{- with $config.service.loadBalancerIP }}
   loadBalancerIP: {{ . }}
   {{- end }}

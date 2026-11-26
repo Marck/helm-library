@@ -139,3 +139,8 @@ jobs:
       # that a missing one fails the render instead of emitting an empty server.
       - name: nfs.server falls back to global.cluster.nas.server
         run: tests/nfs-server-fallback.sh
+
+      # A headless Service needs clusterIP None at spec level; every other
+      # Service must stay unchanged, because clusterIP is immutable.
+      - name: Headless Service is opt-in
+        run: tests/headless-service.sh

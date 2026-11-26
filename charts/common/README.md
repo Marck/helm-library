@@ -273,6 +273,8 @@ Parameters: `Root`, `Component` (default `"app"`), `Config` (defaults to `Root.V
 | `service.loadBalancerIP` | Request a specific LoadBalancer IP |
 | `service.externalTrafficPolicy` | `Cluster` (default) or `Local` (preserves client source IP) |
 | `service.loadBalancerClass` | LoadBalancer implementation class (e.g. to pick kube-vip over k3s klipper) |
+| `service.clusterIP` | `None` for a headless Service: DNS answers with the pod addresses, for a client that must reach one exact pod |
+| `service.publishNotReadyAddresses` | `true` to publish pod addresses before the pods are Ready (a headless Service a booting pod must already be reachable through) |
 | `service.nodePort` / `ports[].nodePort` | Pin the node port instead of letting the API server allocate one from 30000-32767. `NodePort` and `LoadBalancer` types only — the API server rejects it on a `ClusterIP`. |
 
 **Pinning a node port.** A `LoadBalancer` Service gets node ports allocated
